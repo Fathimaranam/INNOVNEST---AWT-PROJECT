@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>InnoNest - Profile</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            InnoNest
+        </div>
+
+        <nav class="sidebar-nav">
+
+            <button class="nav-item" id="navHome">
+                🏠
+                <span>Home</span>
+            </button>
+
+            <button class="nav-item" id="navDiscover">
+                ◉
+                <span>Discover</span>
+            </button>
+
+            <button class="nav-item" id="navIdeas">
+                💡
+                <span>Ideas</span>
+            </button>
+
+            <button class="nav-item" id="navCommunity">
+                👥
+                <span>Community</span>
+            </button>
+
+            <button class="nav-item" id="navMessages">
+                💬
+                <span>Messages</span>
+            </button>
+
+            <button class="nav-item" id="navNotifications">
+                🔔
+                <span>Notifications</span>
+            </button>
+
+            <button class="nav-item active" id="navProfile">
+                👤
+                <span>Profile</span>
+            </button>
+
+        </nav>
+
+
+        <!-- CURRENT USER -->
+
+        <div class="sidebar-user">
+
+            <div class="user-avatar" id="sidebarAvatar">
+                S
+            </div>
+
+            <div>
+
+                <strong id="sidebarName">
+                    Loading...
+                </strong>
+
+                <small id="sidebarEmail">
+                    Loading...
+                </small>
+
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <!-- MAIN CONTENT -->
+
+    <main class="main-content">
+
+        <!-- TOP BAR -->
+
+        <header class="topbar">
+
+            <div class="search-container">
+
+                <span class="search-icon">
+                    ⌕
+                </span>
+
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Search ideas, founders, or investors..."
+                >
+
+            </div>
+
+
+            <div class="topbar-actions">
+
+                <button
+                    class="icon-button"
+                    id="notificationTopBtn"
+                >
+                    🔔
+                </button>
+
+                <button
+                    class="post-button"
+                    id="postIdeaBtn"
+                >
+                    + &nbsp; Post Idea
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <!-- PROFILE -->
+
+        <section class="profile-page">
+
+            <div class="profile-header">
+
+                <div class="profile-avatar" id="profileAvatar">
+                    S
+                </div>
+
+
+                <div class="profile-main-info">
+
+                    <h1 id="profileName">
+                        Loading...
+                    </h1>
+
+                    <p id="profileRole">
+                        Loading...
+                    </p>
+
+                    <p id="profileLocation">
+                        📍 Loading...
+                    </p>
+
+                </div>
+
+
+                <button
+                    class="primary-button"
+                    id="editProfileBtn"
+                >
+                    Edit Profile
+                </button>
+
+            </div>
+
+
+            <!-- PROFILE STATS -->
+
+            <div class="profile-statistics">
+
+                <div class="profile-stat-card">
+
+                    <span>
+                        FOLLOWERS
+                    </span>
+
+                    <strong id="followersCount">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="profile-stat-card">
+
+                    <span>
+                        FOLLOWING
+                    </span>
+
+                    <strong id="followingCount">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="profile-stat-card">
+
+                    <span>
+                        CONNECTIONS
+                    </span>
+
+                    <strong id="connectionsCount">
+                        0
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <!-- ABOUT -->
+
+            <div class="profile-section">
+
+                <h2>
+                    About
+                </h2>
+
+                <p id="profileBio">
+                    Loading profile information...
+                </p>
+
+            </div>
+
+
+            <!-- SKILLS -->
+
+            <div class="profile-section">
+
+                <h2>
+                    Skills & Interests
+                </h2>
+
+                <div
+                    class="profile-skills"
+                    id="profileSkills"
+                >
+                    Loading...
+                </div>
+
+            </div>
+
+
+            <!-- USER IDEAS -->
+
+            <div class="profile-section">
+
+                <div class="profile-section-header">
+
+                    <h2>
+                        My Ideas
+                    </h2>
+
+                    <span id="userIdeaCount">
+                        0 ideas
+                    </span>
+
+                </div>
+
+
+                <div id="userIdeasContainer">
+
+                    <div class="loading">
+                        Loading ideas...
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- EDIT PROFILE MODAL -->
+
+    <div
+        id="profileModal"
+        class="profile-modal hidden"
+    >
+
+        <div class="profile-modal-content">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <h2>
+                        Edit Profile
+                    </h2>
+
+                    <p>
+                        Update your profile information.
+                    </p>
+
+                </div>
+
+                <button id="closeProfileModal">
+                    ✕
+                </button>
+
+            </div>
+
+
+            <form id="profileForm">
+
+                <label>
+                    Name
+
+                    <input
+                        type="text"
+                        id="editName"
+                        required
+                    >
+
+                </label>
+
+
+                <label>
+                    Bio
+
+                    <textarea
+                        id="editBio"
+                    ></textarea>
+
+                </label>
+
+
+                <label>
+                    Location
+
+                    <input
+                        type="text"
+                        id="editLocation"
+                    >
+
+                </label>
+
+
+                <button
+                    type="submit"
+                    class="submit-idea-button"
+                >
+                    Save Changes
+                </button>
+
+                <p id="profileFormMessage"></p>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <script src="js/profile.js"></script>
+
+</body>
+
+</html>

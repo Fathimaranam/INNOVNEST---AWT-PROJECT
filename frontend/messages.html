@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>InnoNest - Messages</title>
+
+    <link
+        rel="stylesheet"
+        href="css/style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            InnoNest
+        </div>
+
+
+        <nav class="sidebar-nav">
+
+            <button
+                class="nav-item"
+                id="navHome"
+            >
+                🏠
+                <span>Home</span>
+            </button>
+
+
+            <button
+                class="nav-item"
+                id="navDiscover"
+            >
+                ◉
+                <span>Discover</span>
+            </button>
+
+
+            <button
+                class="nav-item"
+                id="navIdeas"
+            >
+                💡
+                <span>Ideas</span>
+            </button>
+
+
+            <button
+                class="nav-item"
+                id="navCommunity"
+            >
+                👥
+                <span>Community</span>
+            </button>
+
+
+            <button
+                class="nav-item active"
+                id="navMessages"
+            >
+                💬
+                <span>Messages</span>
+            </button>
+
+
+            <button
+                class="nav-item"
+                id="navNotifications"
+            >
+                🔔
+                <span>Notifications</span>
+            </button>
+
+
+            <button
+                class="nav-item"
+                id="navProfile"
+            >
+                👤
+                <span>Profile</span>
+            </button>
+
+        </nav>
+
+
+        <!-- CURRENT USER -->
+
+        <div class="sidebar-user">
+
+            <div
+                class="user-avatar"
+                id="sidebarAvatar"
+            >
+                S
+            </div>
+
+
+            <div>
+
+                <strong id="sidebarName">
+                    Sarah Jenkins
+                </strong>
+
+                <small id="sidebarEmail">
+                    sarah@innovnest.com
+                </small>
+
+            </div>
+
+        </div>
+
+    </aside>
+
+
+
+    <!-- MAIN CONTENT -->
+
+    <main class="main-content">
+
+
+        <!-- TOP BAR -->
+
+        <header class="topbar">
+
+            <div class="search-container">
+
+                <span class="search-icon">
+                    ⌕
+                </span>
+
+
+                <input
+                    type="text"
+                    id="messageSearch"
+                    placeholder="Search conversations..."
+                >
+
+            </div>
+
+
+            <div class="topbar-actions">
+
+                <button
+                    class="icon-button"
+                    id="notificationTopBtn"
+                >
+                    🔔
+                </button>
+
+
+                <button
+                    class="post-button"
+                    id="postIdeaBtn"
+                >
+                    + &nbsp; Post Idea
+                </button>
+
+            </div>
+
+        </header>
+
+
+
+        <!-- MESSAGES PAGE -->
+
+        <section class="messages-page">
+
+
+            <div class="messages-header">
+
+                <div>
+
+                    <h1>
+                        Messages
+                    </h1>
+
+                    <p>
+                        Connect and communicate with founders,
+                        investors and innovators.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- MESSAGES LAYOUT -->
+
+            <div class="messages-container">
+
+
+                <!-- CONVERSATION LIST -->
+
+                <div class="conversation-list">
+
+
+                    <div class="conversation-title">
+
+                        <h2>
+                            Conversations
+                        </h2>
+
+                        <span id="conversationCount">
+                            0
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        id="conversationList"
+                        class="conversation-items"
+                    >
+
+                        <div class="loading">
+                            Loading conversations...
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- CHAT AREA -->
+
+                <div class="chat-area">
+
+
+                    <div
+                        id="chatEmpty"
+                        class="chat-empty"
+                    >
+
+                        <div class="chat-empty-icon">
+                            💬
+                        </div>
+
+                        <h2>
+                            Select a conversation
+                        </h2>
+
+                        <p>
+                            Choose a conversation from the
+                            left to start messaging.
+                        </p>
+
+                    </div>
+
+
+
+                    <!-- ACTIVE CHAT -->
+
+                    <div
+                        id="activeChat"
+                        class="active-chat hidden"
+                    >
+
+
+                        <div class="chat-header">
+
+
+                            <div
+                                class="chat-user-avatar"
+                                id="chatUserAvatar"
+                            >
+                                D
+                            </div>
+
+
+                            <div>
+
+                                <h2 id="chatUserName">
+                                    User
+                                </h2>
+
+                                <p id="chatUserRole">
+                                    User
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <!-- CHAT MESSAGES -->
+
+                        <div
+                            id="chatMessages"
+                            class="chat-messages"
+                        >
+
+                        </div>
+
+
+
+                        <!-- MESSAGE FORM -->
+
+                        <form
+                            id="messageForm"
+                            class="message-form"
+                        >
+
+                            <input
+                                type="text"
+                                id="messageInput"
+                                placeholder="Type a message..."
+                                autocomplete="off"
+                                required
+                            >
+
+
+                            <button
+                                type="submit"
+                                class="send-message-button"
+                            >
+                                Send
+                            </button>
+
+                        </form>
+
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="js/messages.js"></script>
+
+</body>
+
+</html>

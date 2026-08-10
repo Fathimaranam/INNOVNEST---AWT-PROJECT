@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>InnovNest - Ideas</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            InnovNest
+        </div>
+
+        <nav class="sidebar-nav">
+
+            <button id="navHome" class="nav-item">
+                🏠
+                <span>Home</span>
+            </button>
+
+            <button id="navDiscover" class="nav-item active">
+                ◉
+                <span>Discover</span>
+            </button>
+
+            <button id="navIdeas" class="nav-item active">
+                💡
+                <span>Ideas</span>
+            </button>
+
+            <button id="navCommunity" class="nav-item">
+                👥
+                <span>Community</span>
+            </button>
+
+            <button id="navMessages" class="nav-item">
+                💬
+                <span>Messages</span>
+            </button>
+
+            <button id="navNotifications" class="nav-item">
+                🔔
+                <span>Notifications</span>
+            </button>
+
+            <button id="navProfile" class="nav-item">
+                👤
+                <span>Profile</span>
+            </button>
+
+        </nav>
+
+
+        <div class="sidebar-user">
+
+            <div class="user-avatar">
+                S
+            </div>
+
+            <div>
+
+                <strong>Sarah Jenkins</strong>
+
+                <small>
+                    sarah@ecologix.co
+                </small>
+
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <!-- MAIN -->
+
+    <main class="main-content">
+
+        <!-- TOP BAR -->
+
+        <header class="topbar">
+
+            <div class="search-container">
+
+                <span class="search-icon">
+                    ⌕
+                </span>
+
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Search ideas, founders, or investors..."
+                >
+
+            </div>
+
+
+            <div class="topbar-actions">
+
+                <button
+                    id="notificationTopBtn"
+                    class="icon-button"
+                >
+                    🔔
+                </button>
+
+                <button
+                    id="postIdeaBtn"
+                    class="post-button"
+                >
+                    + &nbsp; Post Idea
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <!-- PAGE -->
+
+        <section class="ideas-page">
+
+            <div class="page-header">
+
+                <div>
+
+                    <h1>
+                        My Ideas
+                    </h1>
+
+                    <p>
+                        Manage and track the progress of your startup pitches.
+                    </p>
+
+                </div>
+
+
+                <button
+                    id="createIdeaBtn"
+                    class="primary-button"
+                >
+                    + Post New Idea
+                </button>
+
+            </div>
+
+
+            <!-- STATISTICS -->
+
+            <div class="idea-statistics">
+
+                <div class="idea-stat-card">
+
+                    <span>
+                        TOTAL IDEAS
+                    </span>
+
+                    <strong id="totalIdeas">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="idea-stat-card">
+
+                    <span>
+                        CONNECTIONS
+                    </span>
+
+                    <strong>
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="idea-stat-card">
+
+                    <span>
+                        TOTAL LIKES
+                    </span>
+
+                    <strong id="totalLikes">
+                        0
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <!-- ACTIVE PITCHES -->
+
+            <div class="ideas-section-header">
+
+                <h2>
+                    Active Pitches
+                </h2>
+
+                <select id="ideaFilter">
+
+                    <option value="all">
+                        All Ideas
+                    </option>
+
+                    <option value="public">
+                        Public
+                    </option>
+
+                    <option value="private">
+                        Private
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- IDEAS FROM MONGODB -->
+
+            <div id="ideasContainer">
+
+                <div class="loading">
+                    Loading ideas...
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- POST IDEA MODAL -->
+
+    <div
+        id="ideaModal"
+        class="idea-modal hidden"
+    >
+
+        <div class="idea-modal-content">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <h2>
+                        Post a New Idea
+                    </h2>
+
+                    <p>
+                        Share your startup idea with the InnoNest community.
+                    </p>
+
+                </div>
+
+                <button id="closeIdeaModal">
+                    ✕
+                </button>
+
+            </div>
+
+
+            <form id="ideaForm">
+
+                <label>
+                    Idea Title
+
+                    <input
+                        type="text"
+                        id="ideaTitle"
+                        placeholder="Enter your startup idea"
+                        required
+                    >
+
+                </label>
+
+
+                <label>
+                    Description
+
+                    <textarea
+                        id="ideaDescription"
+                        placeholder="Describe your startup idea..."
+                        required
+                    ></textarea>
+
+                </label>
+
+
+                <div class="form-row">
+
+                    <label>
+                        Category
+
+                        <select id="ideaCategory">
+
+                            <option value="SaaS">
+                                SaaS
+                            </option>
+
+                            <option value="FinTech">
+                                FinTech
+                            </option>
+
+                            <option value="HealthTech">
+                                HealthTech
+                            </option>
+
+                            <option value="EdTech">
+                                EdTech
+                            </option>
+
+                            <option value="AI">
+                                AI
+                            </option>
+
+                            <option value="E-Commerce">
+                                E-Commerce
+                            </option>
+
+                            <option value="Other">
+                                Other
+                            </option>
+
+                        </select>
+
+                    </label>
+
+
+                    <label>
+                        Stage
+
+                        <select id="ideaStage">
+
+                            <option value="Idea Stage">
+                                Idea Stage
+                            </option>
+
+                            <option value="Pre-Seed">
+                                Pre-Seed
+                            </option>
+
+                            <option value="Seed">
+                                Seed
+                            </option>
+
+                            <option value="Growth">
+                                Growth
+                            </option>
+
+                        </select>
+
+                    </label>
+
+                </div>
+
+
+                <label>
+                    Visibility
+
+                    <select id="ideaVisibility">
+
+                        <option value="public">
+                            Public
+                        </option>
+
+                        <option value="private">
+                            Private
+                        </option>
+
+                    </select>
+
+                </label>
+
+
+                <button
+                    type="submit"
+                    class="submit-idea-button"
+                >
+                    Publish Idea
+                </button>
+
+                <p id="ideaFormMessage"></p>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <script src="js/ideas.js"></script>
+
+</body>
+
+</html>

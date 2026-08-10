@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>InnoNest - Community</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            InnoNest
+        </div>
+
+        <nav class="sidebar-nav">
+
+            <button class="nav-item" id="navHome">
+                🏠 <span>Home</span>
+            </button>
+
+            <button class="nav-item" id="navDiscover">
+                ◉ <span>Discover</span>
+            </button>
+
+            <button class="nav-item" id="navIdeas">
+                💡 <span>Ideas</span>
+            </button>
+
+            <button class="nav-item active" id="navCommunity">
+                👥 <span>Community</span>
+            </button>
+
+            <button class="nav-item" id="navMessages">
+                💬 <span>Messages</span>
+            </button>
+
+            <button class="nav-item" id="navNotifications">
+                🔔 <span>Notifications</span>
+            </button>
+
+            <button class="nav-item" id="navProfile">
+                👤 <span>Profile</span>
+            </button>
+
+        </nav>
+
+        <div class="sidebar-user">
+
+            <div class="user-avatar" id="sidebarAvatar">
+                S
+            </div>
+
+            <div>
+                <strong id="sidebarName">
+                    Sarah Jenkins
+                </strong>
+
+                <small id="sidebarEmail">
+                    sarah@innovnest.com
+                </small>
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <main class="main-content">
+
+        <header class="topbar">
+
+            <div class="search-container">
+
+                <span class="search-icon">
+                    ⌕
+                </span>
+
+                <input
+                    type="text"
+                    id="communitySearch"
+                    placeholder="Search founders, investors, students..."
+                >
+
+            </div>
+
+            <div class="topbar-actions">
+
+                <button class="icon-button">
+                    🔔
+                </button>
+
+                <button
+                    class="post-button"
+                    id="postIdeaBtn"
+                >
+                    + &nbsp; Post Idea
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <section class="community-page">
+
+            <div class="community-header">
+
+                <div>
+                    <h1>Community</h1>
+
+                    <p>
+                        Discover innovators, founders, mentors
+                        and investors in the InnoNest community.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <div class="community-stats">
+
+                <div class="community-stat-card">
+
+                    <span>
+                        COMMUNITY MEMBERS
+                    </span>
+
+                    <strong id="totalMembers">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="community-stat-card">
+
+                    <span>
+                        FOUNDERS
+                    </span>
+
+                    <strong id="totalFounders">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="community-stat-card">
+
+                    <span>
+                        MENTORS
+                    </span>
+
+                    <strong id="totalMentors">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="community-stat-card">
+
+                    <span>
+                        INVESTORS
+                    </span>
+
+                    <strong id="totalInvestors">
+                        0
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="community-section">
+
+                <div class="community-section-header">
+
+                    <h2>
+                        Discover People
+                    </h2>
+
+                    <select id="roleFilter">
+
+                        <option value="all">
+                            All Members
+                        </option>
+
+                        <option value="Founder">
+                            Founders
+                        </option>
+
+                        <option value="Investor">
+                            Investors
+                        </option>
+
+                        <option value="Mentor">
+                            Mentors
+                        </option>
+
+                        <option value="Student">
+                            Students
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div
+                    id="communityContainer"
+                    class="community-grid"
+                >
+
+                    <div class="loading">
+                        Loading community...
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="js/community.js"></script>
+
+</body>
+
+</html>

@@ -1,127 +1,418 @@
-// ===============================
-// InnoNest Front Page JavaScript
-// ===============================
+const IDEAS_API = "http://localhost:5000/api/ideas";
+const USERS_API = "http://localhost:5000/api/users";
+
+let allIdeas = [];
+let allUsers = [];
 
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("InnoNest front page loaded");
 
-    // Get Started button
-    const getStartedBtn = document.querySelector("#getStartedBtn");
-
-    if (getStartedBtn) {
-        getStartedBtn.addEventListener("click", () => {
-            window.location.href = "ideas.html";
-        });
-    }
-
-    // Explore Ideas button
-    const exploreIdeasBtn = document.querySelector("#exploreIdeasBtn");
-
-    if (exploreIdeasBtn) {
-        exploreIdeasBtn.addEventListener("click", () => {
-            window.location.href = "ideas.html";
-        });
-    }
-
-    // Post Idea button
-    const postIdeaBtn = document.querySelector("#postIdeaBtn");
-
-    if (postIdeaBtn) {
-        postIdeaBtn.addEventListener("click", () => {
-            window.location.href = "ideas.html";
-        });
-    }
+    console.log("Frontpage loaded");
 
     setupNavigation();
+
+    setupButtons();
+
     setupSearch();
+
+    loadHomepageData();
+
 });
 
 
-// ===============================
-// Sidebar Navigation
-// ===============================
+/* ===============================
+   LOAD HOMEPAGE DATA
+================================ */
 
-function setupNavigation() {
+async function loadHomepageData() {
 
-    const home = document.querySelector("#navHome");
-    const discover = document.querySelector("#navDiscover");
-    const ideas = document.querySelector("#navIdeas");
-    const community = document.querySelector("#navCommunity");
-    const messages = document.querySelector("#navMessages");
-    const notifications = document.querySelector("#navNotifications");
-    const profile = document.querySelector("#navProfile");
+    try {
 
-    if (home) {
-        home.addEventListener("click", () => {
-            window.location.href = "frontpage.html";
-        });
+        const [ideasResponse, usersResponse] =
+            await Promise.all([
+                fetch(IDEAS_API),
+                fetch(USERS_API)
+            ]);
+
+
+        if (!ideasResponse.ok) {
+            throw new Error("Unable to load ideas");
+        }
+
+
+        if (!usersResponse.ok) {
+            throw new Error("Unable to load users");
+        }
+
+
+        allIdeas =
+            await ideasResponse.json();
+
+
+        allUsers =
+            await usersResponse.json();
+
+
+        console.log(
+            "Ideas loaded:",
+            allIdeas.length
+        );
+
+
+        console.log(
+            "Users loaded:",
+            allUsers.length
+        );
+
+
+        updateHomepageStatistics();
+
+        updateHeroIdea();
+
+    } catch (error) {
+
+        console.error(
+            "Homepage data error:",
+            error
+        );
+
     }
 
-    if (discover) {
-        discover.addEventListener("click", () => {
-            window.location.href = "ideas.html";
-        });
-    }
-
-    if (ideas) {
-        ideas.addEventListener("click", () => {
-            window.location.href = "ideas.html";
-        });
-    }
-
-    if (community) {
-        community.addEventListener("click", () => {
-            window.location.href = "community.html";
-        });
-    }
-
-    if (messages) {
-        messages.addEventListener("click", () => {
-            window.location.href = "messages.html";
-        });
-    }
-
-    if (notifications) {
-        notifications.addEventListener("click", () => {
-            window.location.href = "notification.html";
-        });
-    }
-
-    if (profile) {
-        profile.addEventListener("click", () => {
-            window.location.href = "profile.html";
-        });
-    }
 }
 
 
-// ===============================
-// Search
-// ===============================
+/* ===============================
+   UPDATE STATISTICS
+================================ */
+
+function updateHomepageStatistics() {
+
+    const innovatorsStat =
+        document.querySelector(
+            ".stat:first-child strong"
+        );
+
+
+    const fundingStat =
+        document.querySelector(
+            ".stat:nth-child(2) strong"
+        );
+
+
+    if (innovatorsStat) {
+
+        innovatorsStat.textContent =
+            formatNumber(allUsers.length);
+
+    }
+
+
+    if (fundingStat) {
+
+        /*
+            This is a demo calculation.
+
+            We use the number of ideas as a simple
+            project statistic instead of displaying
+            a fake $50M figure.
+        */
+
+        fundingStat.textContent =
+            `${allIdeas.length} Ideas`;
+
+    }
+
+}
+
+
+/* ===============================
+   UPDATE HERO IDEA
+================================ */
+
+function updateHeroIdea() {
+
+    if (allIdeas.length === 0) {
+        return;
+    }
+
+
+    /*
+        Find the most recently created idea.
+    */
+
+    const latestIdea =
+        [...allIdeas].sort(
+            (a, b) =>
+                new Date(b.createdAt) -
+                new Date(a.createdAt)
+        )[0];
+
+
+    const overlay =
+        document.querySelector(
+            ".image-overlay"
+        );
+
+
+    if (!overlay) {
+        return;
+    }
+
+
+    const title =
+        overlay.querySelector("strong");
+
+
+    const description =
+        overlay.querySelector("span");
+
+
+    if (title) {
+
+        title.textContent =
+            latestIdea.title;
+
+    }
+
+
+    if (description) {
+
+        description.textContent =
+            `${latestIdea.category || "Startup"} • ${latestIdea.stage || "Idea Stage"}`;
+
+    }
+
+}
+
+
+/* ===============================
+   SEARCH
+================================ */
 
 function setupSearch() {
 
-    const searchInput = document.querySelector("#searchInput");
+    const searchInput =
+        document.getElementById(
+            "searchInput"
+        );
+
 
     if (!searchInput) {
         return;
     }
 
-    searchInput.addEventListener("keypress", (event) => {
 
-        if (event.key === "Enter") {
+    searchInput.addEventListener(
+        "keydown",
+        event => {
 
-            const searchText = searchInput.value.trim();
-
-            if (searchText === "") {
+            if (event.key !== "Enter") {
                 return;
             }
 
-            console.log("Searching for:", searchText);
 
-            // Send search term to ideas page
-            window.location.href =
-                `ideas.html?search=${encodeURIComponent(searchText)}`;
+            const search =
+                searchInput.value
+                    .trim()
+                    .toLowerCase();
+
+
+            if (!search) {
+                return;
+            }
+
+
+            const matchingIdea =
+                allIdeas.find(idea => {
+
+                    return (
+
+                        (idea.title || "")
+                            .toLowerCase()
+                            .includes(search)
+
+                        ||
+
+                        (idea.description || "")
+                            .toLowerCase()
+                            .includes(search)
+
+                        ||
+
+                        (idea.category || "")
+                            .toLowerCase()
+                            .includes(search)
+
+                    );
+
+                });
+
+
+            if (matchingIdea) {
+
+                window.location.href =
+                    "ideas.html";
+
+            } else {
+
+                alert(
+                    "No matching idea found."
+                );
+
+            }
+
         }
-    });
+    );
+
+}
+
+
+/* ===============================
+   BUTTONS
+================================ */
+
+function setupButtons() {
+
+    const getStartedBtn =
+        document.getElementById(
+            "getStartedBtn"
+        );
+
+
+    const exploreIdeasBtn =
+        document.getElementById(
+            "exploreIdeasBtn"
+        );
+
+
+    const postIdeaBtn =
+        document.getElementById(
+            "postIdeaBtn"
+        );
+
+
+    if (getStartedBtn) {
+
+        getStartedBtn.addEventListener(
+            "click",
+            () => {
+
+                window.location.href =
+                    "ideas.html";
+
+            }
+        );
+
+    }
+
+
+    if (exploreIdeasBtn) {
+
+        exploreIdeasBtn.addEventListener(
+            "click",
+            () => {
+
+                window.location.href =
+                    "ideas.html";
+
+            }
+        );
+
+    }
+
+
+    if (postIdeaBtn) {
+
+        postIdeaBtn.addEventListener(
+            "click",
+            () => {
+
+                window.location.href =
+                    "ideas.html";
+
+            }
+        );
+
+    }
+
+}
+
+
+/* ===============================
+   NAVIGATION
+================================ */
+
+function setupNavigation() {
+
+    const navigation = {
+
+        navHome:
+            "frontpage.html",
+
+        navDiscover:
+            "ideas.html",
+
+        navIdeas:
+            "ideas.html",
+
+        navCommunity:
+            "community.html",
+
+        navMessages:
+            "messages.html",
+
+        navNotifications:
+            "notification.html",
+
+        navProfile:
+            "profile.html"
+
+    };
+
+
+    Object.keys(navigation).forEach(
+        id => {
+
+            const element =
+                document.getElementById(id);
+
+
+            if (element) {
+
+                element.addEventListener(
+                    "click",
+                    () => {
+
+                        window.location.href =
+                            navigation[id];
+
+                    }
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ===============================
+   NUMBER FORMATTER
+================================ */
+
+function formatNumber(number) {
+
+    if (number >= 1000) {
+
+        return (
+            (number / 1000)
+                .toFixed(1)
+                .replace(".0", "")
+            + "k+"
+        );
+
+    }
+
+
+    return number;
 }

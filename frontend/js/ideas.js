@@ -1,63 +1,86 @@
-// ===============================
-// InnoNest Ideas JavaScript
-// ===============================
-
 const API_URL = "http://localhost:5000/api/ideas";
+
+let allIdeas = [];
 
 document.addEventListener("DOMContentLoaded", () => {
 
     console.log("Ideas page loaded");
 
-    loadIdeas();
+    setupNavigation();
+
+    setupModal();
 
     setupIdeaForm();
 
-    setupNavigation();
+    setupFilter();
+
+    setupSearch();
+
+    loadIdeas();
 
 });
 
 
-// ===============================
-// LOAD IDEAS FROM MONGODB
-// ===============================
+/* ===============================
+   LOAD IDEAS
+================================ */
 
 async function loadIdeas() {
 
+    const container =
+        document.getElementById("ideasContainer");
+
     try {
+
+        container.innerHTML = `
+            <div class="loading">
+                Loading ideas...
+            </div>
+        `;
 
         const response = await fetch(API_URL);
 
         if (!response.ok) {
-            throw new Error("Failed to fetch ideas");
+            throw new Error("Unable to load ideas");
         }
 
-        const ideas = await response.json();
+        allIdeas = await response.json();
 
-        console.log("Ideas received:", ideas);
+        displayIdeas(allIdeas);
 
-        displayIdeas(ideas);
+        updateStatistics(allIdeas);
 
     } catch (error) {
 
-        console.error("Error loading ideas:", error);
+        console.error(error);
+
+        container.innerHTML = `
+            <div class="empty-state">
+
+                <h3>
+                    Unable to load ideas
+                </h3>
+
+                <p>
+                    Make sure the backend server is running.
+                </p>
+
+            </div>
+        `;
 
     }
 
 }
 
 
-// ===============================
-// DISPLAY IDEAS
-// ===============================
+/* ===============================
+   DISPLAY IDEAS
+================================ */
 
 function displayIdeas(ideas) {
 
-    const container = document.querySelector("#ideasContainer");
-
-    if (!container) {
-        console.log("ideasContainer not found");
-        return;
-    }
+    const container =
+        document.getElementById("ideasContainer");
 
     container.innerHTML = "";
 
@@ -65,128 +88,164 @@ function displayIdeas(ideas) {
 
         container.innerHTML = `
             <div class="empty-state">
-                <h3>No ideas yet</h3>
-                <p>Be the first person to post an idea.</p>
+
+                <h3>
+                    No ideas yet
+                </h3>
+
+                <p>
+                    Be the first person to publish
+                    a startup idea.
+                </p>
+
             </div>
         `;
 
         return;
+
     }
 
 
     ideas.forEach((idea) => {
 
-        const ideaCard = document.createElement("div");
+        const card =
+            document.createElement("div");
 
-        ideaCard.className = "idea-card";
+        card.className = "idea-card";
 
-        ideaCard.innerHTML = `
-            <h3>${idea.title}</h3>
+        card.innerHTML = `
 
-            <p>${idea.description}</p>
+            <div class="idea-card-top">
 
-            <div class="idea-meta">
-                <span>${idea.category || "General"}</span>
-                <span>${idea.stage || "Idea Stage"}</span>
-                <span>${idea.visibility || "Public"}</span>
+                <div>
+
+                    <h3>
+                        ${escapeHTML(idea.title)}
+                    </h3>
+
+                    <p class="idea-card-description">
+                        ${escapeHTML(idea.description)}
+                    </p>
+
+                </div>
+
+                <span class="idea-visibility">
+                    ${idea.visibility || "public"}
+                </span>
+
             </div>
 
-            <button onclick="viewIdea('${idea._id}')">
-                View Idea
-            </button>
+
+            <div class="idea-meta">
+
+                <span class="idea-tag">
+                    ${escapeHTML(idea.category || "General")}
+                </span>
+
+                <span class="idea-tag">
+                    ${escapeHTML(idea.stage || "Idea Stage")}
+                </span>
+
+                <span class="idea-likes">
+                    ❤️ ${idea.likes || 0} likes
+                </span>
+
+            </div>
+
         `;
 
-        container.appendChild(ideaCard);
+        container.appendChild(card);
 
     });
 
 }
 
 
-// ===============================
-// CREATE IDEA
-// ===============================
+/* ===============================
+   STATISTICS
+================================ */
 
-function setupIdeaForm() {
+function updateStatistics(ideas) {
 
-    const form = document.querySelector("#ideaForm");
+    const totalIdeas =
+        document.getElementById("totalIdeas");
 
-    if (!form) {
-        return;
+    const totalLikes =
+        document.getElementById("totalLikes");
+
+
+    if (totalIdeas) {
+
+        totalIdeas.textContent =
+            ideas.length;
+
     }
 
-    form.addEventListener("submit", async (event) => {
 
-        event.preventDefault();
+    if (totalLikes) {
 
+        const likes =
+            ideas.reduce(
+                (sum, idea) => sum + (idea.likes || 0),
+                0
+            );
 
-        const title = document.querySelector("#ideaTitle").value;
-        const description =
-            document.querySelector("#ideaDescription").value;
+        totalLikes.textContent = likes;
 
-        const category =
-            document.querySelector("#ideaCategory").value;
+    }
 
-        const stage =
-            document.querySelector("#ideaStage").value;
-
-
-        const ideaData = {
-
-            title: title,
-
-            description: description,
-
-            category: category,
-
-            stage: stage,
-
-            visibility: "public",
-
-            status: "active"
-
-        };
+}
 
 
-        try {
+/* ===============================
+   MODAL
+================================ */
 
-            const response = await fetch(API_URL, {
+function setupModal() {
 
-                method: "POST",
+    const modal =
+        document.getElementById("ideaModal");
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
+    const openButtons = [
+        document.getElementById("createIdeaBtn"),
+        document.getElementById("postIdeaBtn")
+    ];
 
-                body: JSON.stringify(ideaData)
+    const closeButton =
+        document.getElementById("closeIdeaModal");
+
+
+    openButtons.forEach((button) => {
+
+        if (button) {
+
+            button.addEventListener("click", () => {
+
+                modal.classList.remove("hidden");
 
             });
 
+        }
 
-            const result = await response.json();
-
-
-            if (!response.ok) {
-
-                alert(result.message || "Failed to create idea");
-
-                return;
-
-            }
+    });
 
 
-            alert("Idea created successfully!");
+    if (closeButton) {
 
-            form.reset();
+        closeButton.addEventListener("click", () => {
 
-            loadIdeas();
+            modal.classList.add("hidden");
+
+        });
+
+    }
 
 
-        } catch (error) {
+    modal.addEventListener("click", (event) => {
 
-            console.error("Error creating idea:", error);
+        if (event.target === modal) {
 
-            alert("Unable to connect to backend.");
+            modal.classList.add("hidden");
 
         }
 
@@ -195,20 +254,226 @@ function setupIdeaForm() {
 }
 
 
-// ===============================
-// VIEW ONE IDEA
-// ===============================
+/* ===============================
+   CREATE IDEA
+================================ */
 
-function viewIdea(id) {
+function setupIdeaForm() {
 
-    window.location.href = `idea-details.html?id=${id}`;
+    const form =
+        document.getElementById("ideaForm");
+
+
+    if (!form) {
+        return;
+    }
+
+
+    form.addEventListener("submit", async (event) => {
+
+        event.preventDefault();
+
+
+        const title =
+            document.getElementById("ideaTitle").value.trim();
+
+        const description =
+            document.getElementById("ideaDescription").value.trim();
+
+        const category =
+            document.getElementById("ideaCategory").value;
+
+        const stage =
+            document.getElementById("ideaStage").value;
+
+        const visibility =
+            document.getElementById("ideaVisibility").value;
+
+
+        const message =
+            document.getElementById("ideaFormMessage");
+
+
+        const ideaData = {
+
+            title,
+            description,
+            category,
+            stage,
+            visibility,
+            status: "active"
+
+        };
+
+
+        try {
+
+            message.textContent =
+                "Publishing idea...";
+
+
+            const response =
+                await fetch(API_URL, {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify(ideaData)
+
+                });
+
+
+            const result =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    result.message ||
+                    "Failed to create idea"
+                );
+
+            }
+
+
+            message.textContent =
+                "✅ Idea published successfully!";
+
+
+            form.reset();
+
+
+            await loadIdeas();
+
+
+            setTimeout(() => {
+
+                document
+                    .getElementById("ideaModal")
+                    .classList.add("hidden");
+
+                message.textContent = "";
+
+            }, 1000);
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            message.textContent =
+                "❌ " + error.message;
+
+        }
+
+    });
 
 }
 
 
-// ===============================
-// NAVIGATION
-// ===============================
+/* ===============================
+   FILTER
+================================ */
+
+function setupFilter() {
+
+    const filter =
+        document.getElementById("ideaFilter");
+
+
+    if (!filter) {
+        return;
+    }
+
+
+    filter.addEventListener("change", () => {
+
+        const value = filter.value;
+
+
+        if (value === "all") {
+
+            displayIdeas(allIdeas);
+
+            return;
+
+        }
+
+
+        const filtered =
+            allIdeas.filter(
+                idea => idea.visibility === value
+            );
+
+
+        displayIdeas(filtered);
+
+    });
+
+}
+
+
+/* ===============================
+   SEARCH
+================================ */
+
+function setupSearch() {
+
+    const searchInput =
+        document.getElementById("searchInput");
+
+
+    if (!searchInput) {
+        return;
+    }
+
+
+    searchInput.addEventListener("input", () => {
+
+        const search =
+            searchInput.value.toLowerCase().trim();
+
+
+        const filtered =
+            allIdeas.filter((idea) => {
+
+                return (
+
+                    idea.title
+                        .toLowerCase()
+                        .includes(search)
+
+                    ||
+
+                    idea.description
+                        .toLowerCase()
+                        .includes(search)
+
+                    ||
+
+                    idea.category
+                        .toLowerCase()
+                        .includes(search)
+
+                );
+
+            });
+
+
+        displayIdeas(filtered);
+
+    });
+
+}
+
+
+/* ===============================
+   NAVIGATION
+================================ */
 
 function setupNavigation() {
 
@@ -233,18 +498,38 @@ function setupNavigation() {
 
     Object.keys(navigation).forEach((id) => {
 
-        const element = document.querySelector(`#${id}`);
+        const element =
+            document.getElementById(id);
+
 
         if (element) {
 
             element.addEventListener("click", () => {
 
-                window.location.href = navigation[id];
+                window.location.href =
+                    navigation[id];
 
             });
 
         }
 
     });
+
+}
+
+
+/* ===============================
+   SECURITY HELPER
+================================ */
+
+function escapeHTML(value) {
+
+    const div =
+        document.createElement("div");
+
+    div.textContent =
+        value ?? "";
+
+    return div.innerHTML;
 
 }
