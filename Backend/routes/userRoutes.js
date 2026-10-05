@@ -1,7 +1,113 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const User = require("../models/user");
 
 const router = express.Router();
+
+
+// ==========================================
+// CREATE USER
+// ==========================================
+
+router.post("/", async (req, res) => {
+
+    try {
+
+        const {
+            name,
+            email,
+            role,
+            bio,
+            location,
+            skills
+        } = req.body;
+
+
+        // Validate name
+        if (!name || !name.trim()) {
+
+            return res.status(400).json({
+                message: "Name is required"
+            });
+
+        }
+
+
+        // Validate email
+        if (!email || !email.trim()) {
+
+            return res.status(400).json({
+                message: "Email is required"
+            });
+
+        }
+
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailRegex.test(email)) {
+
+            return res.status(400).json({
+                message: "Please provide a valid email address"
+            });
+
+        }
+
+
+        // Check duplicate email
+        const existingUser = await User.findOne({
+            email: email.toLowerCase()
+        });
+
+        if (existingUser) {
+
+            return res.status(400).json({
+                message: "Email already exists"
+            });
+
+        }
+
+
+        // Create user
+        const newUser = new User({
+
+            name: name.trim(),
+
+            email: email.toLowerCase().trim(),
+
+            role,
+
+            bio,
+
+            location,
+
+            skills
+
+        });
+
+
+        // Save user
+        const savedUser = await newUser.save();
+
+
+        // Return created user
+        res.status(201).json(savedUser);
+
+    } catch (error) {
+
+        console.error(
+            "Error creating user:",
+            error.message
+        );
+
+        res.status(500).json({
+            message: "Failed to create user"
+        });
+
+    }
+
+});
 
 
 // ==========================================
@@ -15,7 +121,7 @@ router.get("/", async (req, res) => {
         const users = await User.find()
             .sort({ createdAt: -1 });
 
-        res.json(users);
+        res.status(200).json(users);
 
     } catch (error) {
 
@@ -40,10 +146,15 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
 
     try {
-
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({
+        message: "Invalid user ID"
+    });
+}
         const user = await User.findById(
             req.params.id
         );
+
 
         if (!user) {
 
@@ -53,7 +164,8 @@ router.get("/:id", async (req, res) => {
 
         }
 
-        res.json(user);
+
+        res.status(200).json(user);
 
     } catch (error) {
 
@@ -78,7 +190,11 @@ router.get("/:id", async (req, res) => {
 router.put("/:id", async (req, res) => {
 
     try {
-
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({
+        message: "Invalid user ID"
+    });
+}
         const {
             name,
             bio,
@@ -88,20 +204,52 @@ router.put("/:id", async (req, res) => {
         } = req.body;
 
 
+        // Validate name if provided
+        if (name !== undefined && !name.trim()) {
+
+            return res.status(400).json({
+                message: "Name cannot be empty"
+            });
+
+        }
+
+
+        // Validate skills if provided
+        if (skills !== undefined && !Array.isArray(skills)) {
+
+            return res.status(400).json({
+                message: "Skills must be an array"
+            });
+
+        }
+
+
         const updatedUser =
             await User.findByIdAndUpdate(
+
                 req.params.id,
+
                 {
-                    name,
+                    name:
+                        name !== undefined
+                            ? name.trim()
+                            : undefined,
+
                     bio,
+
                     location,
+
                     role,
+
                     skills
+
                 },
+
                 {
                     new: true,
                     runValidators: true
                 }
+
             );
 
 
@@ -114,7 +262,7 @@ router.put("/:id", async (req, res) => {
         }
 
 
-        res.json(updatedUser);
+        res.status(200).json(updatedUser);
 
     } catch (error) {
 
@@ -131,5 +279,56 @@ router.put("/:id", async (req, res) => {
 
 });
 
+
+// ==========================================
+// DELETE USER
+// ==========================================
+
+router.delete("/:id", async (req, res) => {
+
+    try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({
+        message: "Invalid user ID"
+    });
+}
+        const deletedUser =
+            await User.findByIdAndDelete(
+                req.params.id
+            );
+
+
+        if (!deletedUser) {
+
+            return res.status(404).json({
+                message: "User not found"
+            });
+
+        }
+
+
+        res.status(200).json({
+            message: "User deleted successfully"
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Error deleting user:",
+            error.message
+        );
+
+        res.status(500).json({
+            message: "Failed to delete user"
+        });
+
+    }
+
+});
+
+
+// ==========================================
+// EXPORT ROUTER
+// ==========================================
 
 module.exports = router;
