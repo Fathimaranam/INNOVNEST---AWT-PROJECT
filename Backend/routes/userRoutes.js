@@ -32,7 +32,14 @@ router.get("/", async (req, res) => {
             .select("-password")
             .sort({ createdAt: -1 });
 
-        res.status(200).json(users);
+        const formattedUsers = users.map(u => {
+            const obj = u.toObject();
+            obj.followersCount = Array.isArray(u.followers) ? u.followers.length : 0;
+            obj.followingCount = Array.isArray(u.following) ? u.following.length : 0;
+            return obj;
+        });
+
+        res.status(200).json(formattedUsers);
 
     } catch (error) {
 
@@ -66,8 +73,11 @@ router.get("/:id", async (req, res) => {
 
         }
 
-        // Explicitly exclude password hash
-        const user = await User.findById(req.params.id).select("-password");
+        // Explicitly exclude password hash, populate followers & following
+        const user = await User.findById(req.params.id)
+            .select("-password")
+            .populate("followers", "name email role profileImage bio")
+            .populate("following", "name email role profileImage bio");
 
         if (!user) {
 
@@ -77,7 +87,11 @@ router.get("/:id", async (req, res) => {
 
         }
 
-        res.status(200).json(user);
+        const userObj = user.toObject();
+        userObj.followersCount = Array.isArray(user.followers) ? user.followers.length : 0;
+        userObj.followingCount = Array.isArray(user.following) ? user.following.length : 0;
+
+        res.status(200).json(userObj);
 
     } catch (error) {
 
@@ -88,6 +102,290 @@ router.get("/:id", async (req, res) => {
 
         res.status(500).json({
             message: "Failed to fetch user"
+        });
+
+    }
+
+});
+
+
+// ==========================================
+// FOLLOW USER
+// POST /api/users/:id/follow
+// ==========================================
+
+router.post("/:id/follow", authMiddleware, async (req, res) => {
+
+    try {
+
+        const targetId = req.params.id;
+        const followerId = req.user._id;
+
+        if (!mongoose.Types.ObjectId.isValid(targetId)) {
+
+            return res.status(400).json({
+                message: "Invalid target user ID"
+            });
+
+        }
+
+        // Prevent users from following themselves
+        if (followerId.toString() === targetId.toString()) {
+
+            return res.status(400).json({
+                message: "You cannot follow yourself"
+            });
+
+        }
+
+        const targetUser = await User.findById(targetId);
+
+        if (!targetUser) {
+
+            return res.status(404).json({
+                message: "User to follow not found"
+            });
+
+        }
+
+        // Prevent duplicate follow relationships
+        const alreadyFollowing = Array.isArray(targetUser.followers) &&
+            targetUser.followers.some(id => id.toString() === followerId.toString());
+
+        if (alreadyFollowing) {
+
+            return res.status(400).json({
+                message: "You are already following this user"
+            });
+
+        }
+
+        // Persist the relationship in MongoDB:
+        // Target's followers list includes followerId
+        // Follower's following list includes targetId
+        await User.findByIdAndUpdate(targetId, {
+            $addToSet: { followers: followerId }
+        });
+
+        await User.findByIdAndUpdate(followerId, {
+            $addToSet: { following: targetId }
+        });
+
+        const updatedTarget = await User.findById(targetId);
+        const updatedFollower = await User.findById(followerId);
+
+        const targetFollowersCount = Array.isArray(updatedTarget.followers) ? updatedTarget.followers.length : 0;
+        const targetFollowingCount = Array.isArray(updatedTarget.following) ? updatedTarget.following.length : 0;
+
+        res.status(200).json({
+            message: `You are now following ${targetUser.name}`,
+            isFollowing: true,
+            followersCount: targetFollowersCount,
+            followingCount: targetFollowingCount,
+            targetUser: {
+                id: updatedTarget._id,
+                name: updatedTarget.name,
+                followersCount: targetFollowersCount,
+                followingCount: targetFollowingCount
+            },
+            currentUser: {
+                id: updatedFollower._id,
+                followersCount: Array.isArray(updatedFollower.followers) ? updatedFollower.followers.length : 0,
+                followingCount: Array.isArray(updatedFollower.following) ? updatedFollower.following.length : 0
+            }
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Error following user:",
+            error.message
+        );
+
+        res.status(500).json({
+            message: "Failed to follow user"
+        });
+
+    }
+
+});
+
+
+// ==========================================
+// UNFOLLOW USER
+// POST /api/users/:id/unfollow & DELETE /api/users/:id/follow
+// ==========================================
+
+const handleUnfollow = async (req, res) => {
+
+    try {
+
+        const targetId = req.params.id;
+        const followerId = req.user._id;
+
+        if (!mongoose.Types.ObjectId.isValid(targetId)) {
+
+            return res.status(400).json({
+                message: "Invalid target user ID"
+            });
+
+        }
+
+        if (followerId.toString() === targetId.toString()) {
+
+            return res.status(400).json({
+                message: "You cannot unfollow yourself"
+            });
+
+        }
+
+        const targetUser = await User.findById(targetId);
+
+        if (!targetUser) {
+
+            return res.status(404).json({
+                message: "User to unfollow not found"
+            });
+
+        }
+
+        // Remove relationship consistently from both views
+        await User.findByIdAndUpdate(targetId, {
+            $pull: { followers: followerId }
+        });
+
+        await User.findByIdAndUpdate(followerId, {
+            $pull: { following: targetId }
+        });
+
+        const updatedTarget = await User.findById(targetId);
+        const updatedFollower = await User.findById(followerId);
+
+        const targetFollowersCount = Array.isArray(updatedTarget.followers) ? updatedTarget.followers.length : 0;
+        const targetFollowingCount = Array.isArray(updatedTarget.following) ? updatedTarget.following.length : 0;
+
+        res.status(200).json({
+            message: `You have unfollowed ${targetUser.name}`,
+            isFollowing: false,
+            followersCount: targetFollowersCount,
+            followingCount: targetFollowingCount,
+            targetUser: {
+                id: updatedTarget._id,
+                name: updatedTarget.name,
+                followersCount: targetFollowersCount,
+                followingCount: targetFollowingCount
+            },
+            currentUser: {
+                id: updatedFollower._id,
+                followersCount: Array.isArray(updatedFollower.followers) ? updatedFollower.followers.length : 0,
+                followingCount: Array.isArray(updatedFollower.following) ? updatedFollower.following.length : 0
+            }
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Error unfollowing user:",
+            error.message
+        );
+
+        res.status(500).json({
+            message: "Failed to unfollow user"
+        });
+
+    }
+
+};
+
+router.post("/:id/unfollow", authMiddleware, handleUnfollow);
+router.delete("/:id/follow", authMiddleware, handleUnfollow);
+
+
+// ==========================================
+// GET USER'S FOLLOWERS LIST
+// GET /api/users/:id/followers
+// ==========================================
+
+router.get("/:id/followers", async (req, res) => {
+
+    try {
+
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+
+            return res.status(400).json({
+                message: "Invalid user ID"
+            });
+
+        }
+
+        const user = await User.findById(req.params.id)
+            .populate("followers", "name email role profileImage bio location");
+
+        if (!user) {
+
+            return res.status(404).json({
+                message: "User not found"
+            });
+
+        }
+
+        res.status(200).json(user.followers || []);
+
+    } catch (error) {
+
+        console.error(
+            "Error fetching followers list:",
+            error.message
+        );
+
+        res.status(500).json({
+            message: "Failed to fetch followers"
+        });
+
+    }
+
+});
+
+
+// ==========================================
+// GET USER'S FOLLOWING LIST
+// GET /api/users/:id/following
+// ==========================================
+
+router.get("/:id/following", async (req, res) => {
+
+    try {
+
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+
+            return res.status(400).json({
+                message: "Invalid user ID"
+            });
+
+        }
+
+        const user = await User.findById(req.params.id)
+            .populate("following", "name email role profileImage bio location");
+
+        if (!user) {
+
+            return res.status(404).json({
+                message: "User not found"
+            });
+
+        }
+
+        res.status(200).json(user.following || []);
+
+    } catch (error) {
+
+        console.error(
+            "Error fetching following list:",
+            error.message
+        );
+
+        res.status(500).json({
+            message: "Failed to fetch following users"
         });
 
     }

@@ -244,9 +244,20 @@ function displayUsers(users) {
                 .join("");
 
 
+        const currentUserId = currentUser ? (currentUser._id || currentUser.id) : null;
         const isCurrentUser =
-            currentUser &&
-            user._id === currentUser._id;
+            currentUserId &&
+            user._id === currentUserId;
+
+        const isFollowing = Array.isArray(user.followers) && currentUserId &&
+            user.followers.some(f => {
+                const fid = typeof f === "object" ? (f._id || f.id) : f;
+                return fid && fid.toString() === currentUserId.toString();
+            });
+
+        const followerCount = user.followersCount !== undefined
+            ? user.followersCount
+            : (Array.isArray(user.followers) ? user.followers.length : (user.followers || 0));
 
 
         card.innerHTML = `
@@ -298,30 +309,33 @@ function displayUsers(users) {
 
             <div class="community-card-bottom">
 
-                <span class="community-followers">
-                    ${user.followers || 0} followers
+                <span class="community-followers" id="followers-count-${user._id}">
+                    ${followerCount} followers
                 </span>
 
+                <div class="community-card-actions">
+                    <a href="profile.html?id=${user._id}" class="community-profile-btn">
+                        View Profile
+                    </a>
 
-                ${
-                    isCurrentUser
-                    ? `
-                        <button
-                            class="connect-button"
-                            disabled
-                        >
-                            Your Profile
-                        </button>
-                    `
-                    : `
-                        <button
-                            class="connect-button"
-                            data-user-id="${user._id}"
-                        >
-                            Connect
-                        </button>
-                    `
-                }
+                    ${
+                        isCurrentUser
+                        ? `
+                            <span class="community-self-badge">
+                                You
+                            </span>
+                        `
+                        : `
+                            <button
+                                class="connect-button ${isFollowing ? "following-btn" : ""}"
+                                data-user-id="${user._id}"
+                                data-following="${isFollowing ? "true" : "false"}"
+                            >
+                                ${isFollowing ? "Unfollow" : "Follow"}
+                            </button>
+                        `
+                    }
+                </div>
 
             </div>
 
@@ -339,7 +353,7 @@ function displayUsers(users) {
 
 
 /* ===============================
-   CONNECT BUTTON
+   CONNECT / FOLLOW BUTTON
 ================================ */
 
 function setupConnectButtons() {
@@ -354,12 +368,64 @@ function setupConnectButtons() {
 
         button.addEventListener(
             "click",
-            () => {
+            async () => {
 
-                button.textContent =
-                    "Connected ✓";
+                const userId = button.getAttribute("data-user-id");
+                if (!userId) return;
 
+                const token = typeof getToken === "function" ? getToken() : localStorage.getItem("token");
+                if (!token) {
+                    alert("Please log in to follow members.");
+                    return;
+                }
+
+                const isCurrentlyFollowing = button.getAttribute("data-following") === "true";
                 button.disabled = true;
+
+                try {
+
+                    const endpoint = isCurrentlyFollowing
+                        ? `${USERS_API}/${userId}/unfollow`
+                        : `${USERS_API}/${userId}/follow`;
+
+                    const res = await fetch(endpoint, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${token}`
+                        }
+                    });
+
+                    const data = await res.json();
+                    if (!res.ok) {
+                        throw new Error(data.message || "Failed to update follow relationship");
+                    }
+
+                    const nowFollowing = data.isFollowing;
+                    button.setAttribute("data-following", nowFollowing ? "true" : "false");
+                    button.textContent = nowFollowing ? "Unfollow" : "Follow";
+
+                    if (nowFollowing) {
+                        button.classList.add("following-btn");
+                    } else {
+                        button.classList.remove("following-btn");
+                    }
+
+                    const countEl = document.getElementById(`followers-count-${userId}`);
+                    if (countEl && data.followersCount !== undefined) {
+                        countEl.textContent = `${data.followersCount} followers`;
+                    }
+
+                } catch (err) {
+
+                    console.error("Community follow error:", err);
+                    alert(err.message);
+
+                } finally {
+
+                    button.disabled = false;
+
+                }
 
             }
         );

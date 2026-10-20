@@ -1735,9 +1735,291 @@ body {
     padding: 6px 11px;
     font-size: 9px;
     cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .connect-button:hover {
     background: #1459b9;
     color: white;
+}
+
+.connect-button.following-btn {
+    background: #f1f5f9;
+    color: #475569;
+    border-color: #cbd5e1;
+}
+
+.connect-button.following-btn:hover {
+    background: #fee2e2;
+    color: #dc2626;
+    border-color: #fca5a5;
+}
+
+/* ===============================
+   IDEA AUTHOR CARD EXTENSIONS
+================================ */
+
+.idea-author-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.idea-author-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.idea-author-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #e8f1ff;
+    color: #1459b9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+    overflow: hidden;
+}
+
+.idea-author-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.idea-author-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.idea-author-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.idea-author-role {
+    font-size: 10px;
+    color: #6b7280;
+}
+
+.idea-author-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.idea-btn-profile,
+.idea-btn-message {
+    padding: 5px 10px;
+    font-size: 10px;
+    font-weight: 500;
+    border-radius: 5px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: 0.18s ease;
+    display: inline-block;
+}
+
+.idea-btn-profile {
+    background: #f8fafc;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+}
+
+.idea-btn-profile:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.idea-btn-message {
+    background: #1459b9;
+    color: #ffffff;
+    border: 1px solid #1459b9;
+}
+
+.idea-btn-message:hover {
+    background: #0f4492;
+}
+
+.idea-self-badge {
+    padding: 4px 8px;
+    font-size: 10px;
+    font-weight: 500;
+    background: #f1f5f9;
+    color: #64748b;
+    border-radius: 4px;
+}
+
+.idea-no-author {
+    font-size: 10px;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* ===============================
+   PROFILE EXTENSIONS
+================================ */
+
+.profile-header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.clickable-stat-card {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.clickable-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-color: #b9cde8;
+}
+
+#followProfileBtn.following-btn {
+    background: #f1f5f9;
+    color: #475569;
+    border-color: #cbd5e1;
+}
+
+#followProfileBtn.following-btn:hover {
+    background: #fee2e2;
+    color: #dc2626;
+    border-color: #fca5a5;
+}
+
+.secondary-button {
+    padding: 10px 18px;
+    border-radius: 6px;
+    background: white;
+    color: #1459b9;
+    border: 1px solid #1459b9;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    display: inline-block;
+    transition: 0.15s ease;
+}
+
+.secondary-button:hover {
+    background: #eef4ff;
+}
+
+/* ===============================
+   FOLLOW LIST MODAL
+================================ */
+
+.follow-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-top: 10px;
+}
+
+.follow-user-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid #eef2f6;
+    transition: 0.15s ease;
+}
+
+.follow-user-item:hover {
+    background: #f1f5f9;
+}
+
+.follow-user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #e0edff;
+    color: #1459b9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.follow-user-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.follow-user-info strong {
+    font-size: 13px;
+    color: #1f2937;
+}
+
+.follow-user-info span {
+    font-size: 11px;
+    color: #6b7280;
+}
+
+.follow-user-link {
+    padding: 5px 11px;
+    font-size: 11px;
+    color: #1459b9;
+    background: white;
+    border: 1px solid #1459b9;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: 0.15s ease;
+}
+
+.follow-user-link:hover {
+    background: #1459b9;
+    color: white;
+}
+
+/* ===============================
+   COMMUNITY CARD ACTIONS
+================================ */
+
+.community-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.community-profile-btn {
+    border: 1px solid #cbd5e1;
+    background: white;
+    color: #475569;
+    border-radius: 5px;
+    padding: 6px 11px;
+    font-size: 9px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.community-profile-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.community-self-badge {
+    font-size: 9px;
+    color: #1459b9;
+    background: #eef4ff;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-weight: 600;
 }

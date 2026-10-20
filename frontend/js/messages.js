@@ -87,8 +87,14 @@ async function loadMessages() {
         updateSidebarUser();
 
 
+        const token = typeof getToken === "function" ? getToken() : localStorage.getItem("token");
+
         const messagesResponse =
-            await fetch(MESSAGES_API);
+            await fetch(MESSAGES_API, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
 
 
         if (!messagesResponse.ok) {
@@ -108,6 +114,47 @@ async function loadMessages() {
 
 
         displayConversations();
+
+
+        // Automatically select conversation if target user is in URL query parameters (e.g. from Message Author)
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetUserId = urlParams.get("user") || urlParams.get("userId");
+
+        if (targetUserId) {
+
+            let targetUser = allUsers.find(
+                u => (u._id || u.id) === targetUserId
+            );
+
+            if (!targetUser) {
+
+                try {
+
+                    const singleUserRes = await fetch(`${USERS_API}/${targetUserId}`);
+
+                    if (singleUserRes.ok) {
+
+                        targetUser = await singleUserRes.json();
+
+                    }
+
+                } catch (e) {
+
+                    console.error("Error fetching target user for chat:", e);
+
+                }
+
+            }
+
+            if (targetUser) {
+
+                targetUser._id = targetUser._id || targetUser.id;
+
+                selectConversation(targetUser);
+
+            }
+
+        }
 
 
     } catch (error) {
@@ -550,6 +597,17 @@ function displayChatMessages() {
 
             }
         );
+
+
+    if (conversationMessages.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="margin: 40px auto; max-width: 380px; padding: 25px; text-align: center;">
+                <h3>No messages yet</h3>
+                <p>Start a new conversation with <strong>${escapeHTML(selectedUser.name)}</strong> by sending a message below.</p>
+            </div>
+        `;
+        return;
+    }
 
 
     conversationMessages.forEach(

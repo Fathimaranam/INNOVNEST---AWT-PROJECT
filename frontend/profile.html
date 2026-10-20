@@ -159,12 +159,30 @@
                 </div>
 
 
-                <button
-                    class="primary-button"
-                    id="editProfileBtn"
-                >
-                    Edit Profile
-                </button>
+                <div class="profile-header-actions">
+
+                    <button
+                        class="primary-button"
+                        id="editProfileBtn"
+                    >
+                        Edit Profile
+                    </button>
+
+                    <button
+                        class="primary-button hidden"
+                        id="followProfileBtn"
+                    >
+                        Follow
+                    </button>
+
+                    <a
+                        class="secondary-button hidden"
+                        id="messageProfileBtn"
+                    >
+                        Message
+                    </a>
+
+                </div>
 
             </div>
 
@@ -173,7 +191,7 @@
 
             <div class="profile-statistics">
 
-                <div class="profile-stat-card">
+                <div class="profile-stat-card clickable-stat-card" id="followersStatCard" title="Click to view followers">
 
                     <span>
                         FOLLOWERS
@@ -186,7 +204,7 @@
                 </div>
 
 
-                <div class="profile-stat-card">
+                <div class="profile-stat-card clickable-stat-card" id="followingStatCard" title="Click to view following">
 
                     <span>
                         FOLLOWING
@@ -354,6 +372,44 @@
                 <p id="profileFormMessage"></p>
 
             </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- FOLLOWERS & FOLLOWING LIST MODAL -->
+
+    <div
+        id="followListModal"
+        class="profile-modal hidden"
+    >
+
+        <div class="profile-modal-content">
+
+            <div class="modal-header">
+
+                <div>
+
+                    <h2 id="followListModalTitle">
+                        Followers
+                    </h2>
+
+                    <p id="followListModalSubtitle">
+                        Connected members
+                    </p>
+
+                </div>
+
+                <button id="closeFollowListModal" type="button">
+                    ✕
+                </button>
+
+            </div>
+
+            <div id="followListContainer" class="follow-list-container">
+                <!-- Dynamically populated -->
+            </div>
 
         </div>
 

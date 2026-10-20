@@ -15,7 +15,7 @@ router.get("/", async (req, res) => {
     try {
 
         const ideas = await Idea.find()
-            .populate("createdBy", "name email")
+            .populate("createdBy", "name email role profileImage")
             .sort({ createdAt: -1 });
 
         res.status(200).json(ideas);
@@ -58,7 +58,7 @@ router.get("/:id", async (req, res) => {
             req.params.id
         ).populate(
             "createdBy",
-            "name email"
+            "name email role profileImage"
         );
 
 
@@ -127,7 +127,7 @@ router.post("/", authMiddleware, async (req, res) => {
         }
 
 
-        // Create idea — createdBy is set from the authenticated user
+        // Create idea — createdBy is derived strictly from the authenticated user
         const newIdea = new Idea({
 
             title: title.trim(),
@@ -138,9 +138,9 @@ router.post("/", authMiddleware, async (req, res) => {
 
             stage: stage.trim(),
 
-            visibility,
+            visibility: visibility && ["public", "private"].includes(visibility) ? visibility : "public",
 
-            status,
+            status: status && ["active", "in-development", "closed"].includes(status) ? status : "active",
 
             createdBy: req.user._id
 
@@ -150,8 +150,10 @@ router.post("/", authMiddleware, async (req, res) => {
         // Save idea
         const savedIdea = await newIdea.save();
 
+        const populatedIdea = await Idea.findById(savedIdea._id)
+            .populate("createdBy", "name email role profileImage");
 
-        res.status(201).json(savedIdea);
+        res.status(201).json(populatedIdea);
 
     } catch (error) {
 

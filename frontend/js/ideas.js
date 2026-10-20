@@ -1,14 +1,19 @@
 const API_URL = "http://localhost:5000/api/ideas";
 
 let allIdeas = [];
+let currentUser = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
 
     console.log("Ideas page loaded");
 
     if (typeof requireAuth === "function") {
-        const user = await requireAuth();
-        if (!user) return;
+        currentUser = await requireAuth();
+        if (!currentUser) return;
+        currentUser._id = currentUser._id || currentUser.id;
+    } else if (typeof fetchCurrentUser === "function") {
+        currentUser = await fetchCurrentUser();
+        if (currentUser) currentUser._id = currentUser._id || currentUser.id;
     }
 
     setupNavigation();
@@ -110,8 +115,18 @@ function displayIdeas(ideas) {
 
     }
 
+    const currentUserId = currentUser ? (currentUser._id || currentUser.id) : null;
 
     ideas.forEach((idea) => {
+
+        const hasAuthor = idea.createdBy && typeof idea.createdBy === "object" && idea.createdBy.name;
+        const authorName = hasAuthor ? idea.createdBy.name : "Author unavailable";
+        const authorId = hasAuthor ? (idea.createdBy._id || idea.createdBy.id) : null;
+        const authorRole = hasAuthor ? (idea.createdBy.role || "Founder") : "";
+        const authorInitial = hasAuthor ? authorName.charAt(0).toUpperCase() : "?";
+        const authorImage = hasAuthor && idea.createdBy.profileImage ? idea.createdBy.profileImage : null;
+
+        const isOwner = currentUserId && authorId && currentUserId.toString() === authorId.toString();
 
         const card =
             document.createElement("div");
@@ -119,6 +134,69 @@ function displayIdeas(ideas) {
         card.className = "idea-card";
 
         card.innerHTML = `
+
+            <div class="idea-author-header">
+
+                <div class="idea-author-info">
+
+                    <div class="idea-author-avatar">
+                        ${
+                            authorImage
+                                ? `<img src="${escapeHTML(authorImage)}" alt="${escapeHTML(authorName)}">`
+                                : authorInitial
+                        }
+                    </div>
+
+                    <div class="idea-author-details">
+
+                        <span class="idea-author-name">
+                            ${escapeHTML(authorName)}
+                        </span>
+
+                        ${
+                            authorRole
+                                ? `<span class="idea-author-role">${escapeHTML(authorRole)}</span>`
+                                : ""
+                        }
+
+                    </div>
+
+                </div>
+
+                <div class="idea-author-actions">
+
+                    ${
+                        authorId
+                            ? `
+                                <a href="profile.html?id=${authorId}" class="idea-btn-profile">
+                                    View Profile
+                                </a>
+
+                                ${
+                                    isOwner
+                                        ? `
+                                            <span class="idea-self-badge">
+                                                Your Idea
+                                            </span>
+                                        `
+                                        : `
+                                            <a href="messages.html?user=${authorId}" class="idea-btn-message">
+                                                Message Author
+                                            </a>
+                                        `
+                                }
+                            `
+                            : `
+                                <span class="idea-no-author">
+                                    Author unavailable
+                                </span>
+                            `
+                    }
+
+                </div>
+
+            </div>
+
 
             <div class="idea-card-top">
 
