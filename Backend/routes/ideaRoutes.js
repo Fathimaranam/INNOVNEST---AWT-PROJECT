@@ -186,23 +186,9 @@ router.put("/:id", authMiddleware, async (req, res) => {
 
         }
 
+        const idea = await Idea.findById(req.params.id);
 
-        const updatedIdea =
-            await Idea.findByIdAndUpdate(
-
-                req.params.id,
-
-                req.body,
-
-                {
-                    new: true,
-                    runValidators: true
-                }
-
-            );
-
-
-        if (!updatedIdea) {
+        if (!idea) {
 
             return res.status(404).json({
                 message: "Idea not found"
@@ -210,8 +196,83 @@ router.put("/:id", authMiddleware, async (req, res) => {
 
         }
 
+        const isAdmin = req.user && req.user.role && req.user.role.toLowerCase() === "admin";
+        const isOwner = idea.createdBy && idea.createdBy.toString() === req.user._id.toString();
 
-        res.status(200).json(updatedIdea);
+        // Enforce ownership: only creator or authorized admin can update
+        if (!isOwner && !isAdmin) {
+
+            if (!idea.createdBy) {
+
+                return res.status(403).json({
+                    message: "Access denied. This idea has no recorded owner and cannot be modified."
+                });
+
+            }
+
+            return res.status(403).json({
+                message: "Access denied. You can only update your own ideas."
+            });
+
+        }
+
+        const {
+            title,
+            description,
+            category,
+            stage,
+            visibility,
+            status
+        } = req.body;
+
+        if (title !== undefined) {
+            if (!title.trim()) {
+                return res.status(400).json({ message: "Title cannot be empty" });
+            }
+            idea.title = title.trim();
+        }
+
+        if (description !== undefined) {
+            if (!description.trim()) {
+                return res.status(400).json({ message: "Description cannot be empty" });
+            }
+            idea.description = description.trim();
+        }
+
+        if (category !== undefined) {
+            if (!category.trim()) {
+                return res.status(400).json({ message: "Category cannot be empty" });
+            }
+            idea.category = category.trim();
+        }
+
+        if (stage !== undefined) {
+            if (!stage.trim()) {
+                return res.status(400).json({ message: "Stage cannot be empty" });
+            }
+            idea.stage = stage.trim();
+        }
+
+        if (visibility !== undefined) {
+            if (!["public", "private"].includes(visibility)) {
+                return res.status(400).json({ message: "Visibility must be 'public' or 'private'" });
+            }
+            idea.visibility = visibility;
+        }
+
+        if (status !== undefined) {
+            if (!["active", "in-development", "closed"].includes(status)) {
+                return res.status(400).json({ message: "Status must be 'active', 'in-development', or 'closed'" });
+            }
+            idea.status = status;
+        }
+
+        // createdBy is NEVER overwritten — preserving original ownership
+        const savedIdea = await idea.save();
+
+        const populatedIdea = await Idea.findById(savedIdea._id).populate("createdBy", "name email");
+
+        res.status(200).json(populatedIdea);
 
     } catch (error) {
 
@@ -246,14 +307,9 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 
         }
 
+        const idea = await Idea.findById(req.params.id);
 
-        const deletedIdea =
-            await Idea.findByIdAndDelete(
-                req.params.id
-            );
-
-
-        if (!deletedIdea) {
+        if (!idea) {
 
             return res.status(404).json({
                 message: "Idea not found"
@@ -261,6 +317,27 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 
         }
 
+        const isAdmin = req.user && req.user.role && req.user.role.toLowerCase() === "admin";
+        const isOwner = idea.createdBy && idea.createdBy.toString() === req.user._id.toString();
+
+        // Enforce ownership: only creator or authorized admin can delete
+        if (!isOwner && !isAdmin) {
+
+            if (!idea.createdBy) {
+
+                return res.status(403).json({
+                    message: "Access denied. This idea has no recorded owner and cannot be deleted."
+                });
+
+            }
+
+            return res.status(403).json({
+                message: "Access denied. You can only delete your own ideas."
+            });
+
+        }
+
+        await Idea.findByIdAndDelete(req.params.id);
 
         res.status(200).json({
             message: "Idea deleted successfully"

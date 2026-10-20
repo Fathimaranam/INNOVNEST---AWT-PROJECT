@@ -1,124 +1,35 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const User = require("../models/user");
+const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
 
 // ==========================================
-// CREATE USER
+// CREATE USER (REDIRECT TO SIGNUP)
 // ==========================================
 
 router.post("/", async (req, res) => {
 
-    try {
-
-        const {
-            name,
-            email,
-            role,
-            bio,
-            location,
-            skills
-        } = req.body;
-
-
-        // Validate name
-        if (!name || !name.trim()) {
-
-            return res.status(400).json({
-                message: "Name is required"
-            });
-
-        }
-
-
-        // Validate email
-        if (!email || !email.trim()) {
-
-            return res.status(400).json({
-                message: "Email is required"
-            });
-
-        }
-
-
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-        if (!emailRegex.test(email)) {
-
-            return res.status(400).json({
-                message: "Please provide a valid email address"
-            });
-
-        }
-
-
-        // Check duplicate email
-        const existingUser = await User.findOne({
-            email: email.toLowerCase()
-        });
-
-        if (existingUser) {
-
-            return res.status(400).json({
-                message: "Email already exists"
-            });
-
-        }
-
-
-        // Create user
-        const newUser = new User({
-
-            name: name.trim(),
-
-            email: email.toLowerCase().trim(),
-
-            role,
-
-            bio,
-
-            location,
-
-            skills
-
-        });
-
-
-        // Save user
-        const savedUser = await newUser.save();
-
-
-        // Return created user
-        res.status(201).json(savedUser);
-
-    } catch (error) {
-
-        console.error(
-            "Error creating user:",
-            error.message
-        );
-
-        res.status(500).json({
-            message: "Failed to create user"
-        });
-
-    }
+    return res.status(400).json({
+        message: "Direct user creation is deprecated. Please use POST /api/auth/signup to register securely."
+    });
 
 });
 
 
 // ==========================================
-// GET ALL USERS
+// GET ALL USERS (PUBLIC DIRECTORY)
 // ==========================================
 
 router.get("/", async (req, res) => {
 
     try {
 
+        // Explicitly exclude password hash and sensitive auth fields
         const users = await User.find()
+            .select("-password")
             .sort({ createdAt: -1 });
 
         res.status(200).json(users);
@@ -146,15 +57,17 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
 
     try {
-        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({
-        message: "Invalid user ID"
-    });
-}
-        const user = await User.findById(
-            req.params.id
-        );
 
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+
+            return res.status(400).json({
+                message: "Invalid user ID"
+            });
+
+        }
+
+        // Explicitly exclude password hash
+        const user = await User.findById(req.params.id).select("-password");
 
         if (!user) {
 
@@ -163,7 +76,6 @@ router.get("/:id", async (req, res) => {
             });
 
         }
-
 
         res.status(200).json(user);
 
@@ -184,17 +96,33 @@ router.get("/:id", async (req, res) => {
 
 
 // ==========================================
-// UPDATE USER
+// UPDATE USER (AUTHENTICATED - OWNER OR ADMIN)
 // ==========================================
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", authMiddleware, async (req, res) => {
 
     try {
+
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({
-        message: "Invalid user ID"
-    });
-}
+
+            return res.status(400).json({
+                message: "Invalid user ID"
+            });
+
+        }
+
+        const isAdmin = req.user && req.user.role && req.user.role.toLowerCase() === "admin";
+        const isSelf = req.user._id.toString() === req.params.id;
+
+        // Enforce account ownership: only self or authorized admin can update
+        if (!isSelf && !isAdmin) {
+
+            return res.status(403).json({
+                message: "Access denied. You can only update your own account."
+            });
+
+        }
+
         const {
             name,
             bio,
@@ -203,55 +131,81 @@ router.put("/:id", async (req, res) => {
             skills
         } = req.body;
 
+        const updateData = {};
 
         // Validate name if provided
-        if (name !== undefined && !name.trim()) {
+        if (name !== undefined) {
 
-            return res.status(400).json({
-                message: "Name cannot be empty"
-            });
+            if (!name.trim()) {
+
+                return res.status(400).json({
+                    message: "Name cannot be empty"
+                });
+
+            }
+
+            updateData.name = name.trim();
 
         }
 
+        if (bio !== undefined) updateData.bio = bio;
+        if (location !== undefined) updateData.location = location;
 
         // Validate skills if provided
-        if (skills !== undefined && !Array.isArray(skills)) {
+        if (skills !== undefined) {
 
-            return res.status(400).json({
-                message: "Skills must be an array"
-            });
+            if (!Array.isArray(skills)) {
+
+                return res.status(400).json({
+                    message: "Skills must be an array"
+                });
+
+            }
+
+            updateData.skills = skills;
 
         }
 
+        // Prevent non-admin users from escalating their privileges to Admin
+        if (role !== undefined) {
+
+            if (isAdmin) {
+
+                updateData.role = role;
+
+            } else {
+
+                const allowedRoles = ["Founder", "Developer", "Designer", "Investor", "Member"];
+
+                if (allowedRoles.includes(role)) {
+
+                    updateData.role = role;
+
+                } else if (role.toLowerCase() === "admin") {
+
+                    return res.status(403).json({
+                        message: "Access denied. You cannot assign yourself an administrative role."
+                    });
+
+                }
+
+            }
+
+        }
+
+        // Strictly protect password and email from this general profile update endpoint
+        delete updateData.password;
+        delete updateData.email;
 
         const updatedUser =
             await User.findByIdAndUpdate(
-
                 req.params.id,
-
-                {
-                    name:
-                        name !== undefined
-                            ? name.trim()
-                            : undefined,
-
-                    bio,
-
-                    location,
-
-                    role,
-
-                    skills
-
-                },
-
+                updateData,
                 {
                     new: true,
                     runValidators: true
                 }
-
-            );
-
+            ).select("-password");
 
         if (!updatedUser) {
 
@@ -260,7 +214,6 @@ router.put("/:id", async (req, res) => {
             });
 
         }
-
 
         res.status(200).json(updatedUser);
 
@@ -281,22 +234,37 @@ router.put("/:id", async (req, res) => {
 
 
 // ==========================================
-// DELETE USER
+// DELETE USER (AUTHENTICATED - OWNER OR ADMIN)
 // ==========================================
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", authMiddleware, async (req, res) => {
 
     try {
+
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({
-        message: "Invalid user ID"
-    });
-}
+
+            return res.status(400).json({
+                message: "Invalid user ID"
+            });
+
+        }
+
+        const isAdmin = req.user && req.user.role && req.user.role.toLowerCase() === "admin";
+        const isSelf = req.user._id.toString() === req.params.id;
+
+        // Enforce account ownership: only self or authorized admin can delete
+        if (!isSelf && !isAdmin) {
+
+            return res.status(403).json({
+                message: "Access denied. You can only delete your own account."
+            });
+
+        }
+
         const deletedUser =
             await User.findByIdAndDelete(
                 req.params.id
             );
-
 
         if (!deletedUser) {
 
@@ -305,7 +273,6 @@ router.delete("/:id", async (req, res) => {
             });
 
         }
-
 
         res.status(200).json({
             message: "User deleted successfully"
