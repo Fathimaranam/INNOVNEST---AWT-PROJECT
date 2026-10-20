@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>InnoNest - Notifications</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            InnoNest
+        </div>
+
+        <nav class="sidebar-nav">
+
+            <button class="nav-item" id="navHome">
+                🏠 <span>Home</span>
+            </button>
+
+            <button class="nav-item" id="navDiscover">
+                ◉ <span>Discover</span>
+            </button>
+
+            <button class="nav-item" id="navIdeas">
+                💡 <span>Ideas</span>
+            </button>
+
+            <button class="nav-item" id="navCommunity">
+                👥 <span>Community</span>
+            </button>
+
+            <button class="nav-item" id="navMessages">
+                💬 <span>Messages</span>
+            </button>
+
+            <button class="nav-item active" id="navNotifications">
+                🔔 <span>Notifications</span>
+            </button>
+
+            <button class="nav-item" id="navProfile">
+                👤 <span>Profile</span>
+            </button>
+
+        </nav>
+
+        <div class="sidebar-user" id="sidebarUserSection">
+
+            <div class="user-avatar" id="sidebarAvatar">
+                ?
+            </div>
+
+            <div>
+                <strong id="sidebarName">
+                    Loading...
+                </strong>
+
+                <small id="sidebarEmail">
+                    ...
+                </small>
+                <button id="sidebarLogoutBtn" class="sidebar-logout-btn" type="button">Log out</button>
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <main class="main-content">
+
+        <header class="topbar">
+
+            <div class="search-container">
+
+                <span class="search-icon">
+                    ⌕
+                </span>
+
+                <input
+                    type="text"
+                    id="notificationSearch"
+                    placeholder="Search notifications..."
+                >
+
+            </div>
+
+            <div class="topbar-actions">
+
+                <button class="icon-button" id="notificationTopBtn">
+                    🔔
+                </button>
+
+                <button
+                    class="post-button"
+                    id="postIdeaBtn"
+                >
+                    + &nbsp; Post Idea
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <section class="community-page">
+
+            <div class="community-header">
+
+                <div>
+                    <h1>Notifications</h1>
+
+                    <p>
+                        Stay updated with ideas, messages and community activity.
+                    </p>
+                </div>
+
+                <button id="markAllRead" class="secondary-button" style="padding: 8px 14px; font-size: 13px;">
+                    Mark All as Read
+                </button>
+
+            </div>
+
+            <div class="notification-list" style="margin-top: 20px; display: flex; flex-direction: column; gap: 12px;">
+
+                <div class="notification-item unread" style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f8fafc;">
+                    <strong>Welcome to InnovNest!</strong>
+                    <p style="margin-top: 4px; font-size: 13px; color: #4b5563;">Explore startup ideas, pitch your own venture, and build your network.</p>
+                </div>
+
+                <div class="notification-item" style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff;">
+                    <strong>Community Tip</strong>
+                    <p style="margin-top: 4px; font-size: 13px; color: #4b5563;">Complete your profile to connect with founders and mentors faster.</p>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <script src="js/session.js"></script>
+    <script src="js/notification.js"></script>
+
+</body>
+
+</html>

@@ -2,6 +2,14 @@
 // SIGNUP PAGE
 // ===============================
 
+const AUTH_API = "http://localhost:5000/api/auth";
+
+document.addEventListener("DOMContentLoaded", () => {
+    if (typeof redirectIfAuthenticated === "function") {
+        redirectIfAuthenticated("frontpage.html");
+    }
+});
+
 const signupForm = document.getElementById("signupForm");
 
 const nameInput = document.getElementById("name");
@@ -79,7 +87,7 @@ passwordToggles.forEach((button) => {
 // SIGNUP FORM
 // ===============================
 
-signupForm.addEventListener("submit", (event) => {
+signupForm.addEventListener("submit", async (event) => {
 
     event.preventDefault();
 
@@ -228,7 +236,7 @@ signupForm.addEventListener("submit", (event) => {
 
 
     // ===============================
-    // TEMPORARY SUCCESS
+    // CONNECT TO BACKEND API
     // ===============================
 
     signupSubmit.disabled = true;
@@ -241,27 +249,38 @@ signupForm.addEventListener("submit", (event) => {
     signupSubmitLabel.textContent =
         "Creating account...";
 
+    try {
+        const response = await fetch(`${AUTH_API}/signup`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                name,
+                email,
+                password
+            })
+        });
 
-    // For now we are only testing the frontend.
-    // Backend connection will be added next.
+        const data = await response.json();
 
-    setTimeout(() => {
+        if (!response.ok) {
+            throw new Error(data.message || "Failed to create account");
+        }
+
+        signupMessage.classList.add("is-success");
+        signupMessage.textContent = "Account created successfully! Redirecting to login...";
+
+        setTimeout(() => {
+            window.location.href = "login.html";
+        }, 1500);
+
+    } catch (error) {
+        signupMessage.classList.remove("is-success");
+        signupMessage.textContent = error.message;
 
         signupSubmit.disabled = false;
-
-        signupSubmit.removeAttribute(
-            "aria-busy"
-        );
-
-        signupSubmitLabel.textContent =
-            "Create account";
-
-        signupMessage.classList.add(
-            "is-success"
-        );
-
-        signupMessage.textContent =
-            "Signup form is working successfully.";
-
-    }, 1000);
+        signupSubmit.removeAttribute("aria-busy");
+        signupSubmitLabel.textContent = "Create account";
+    }
 });

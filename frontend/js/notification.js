@@ -2,9 +2,14 @@
 // InnoNest Notifications JavaScript
 // ===============================
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
 
     console.log("Notifications page loaded");
+
+    if (typeof requireAuth === "function") {
+        const user = await requireAuth();
+        if (!user) return;
+    }
 
     setupNavigation();
 

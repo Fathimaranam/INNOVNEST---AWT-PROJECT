@@ -1,20 +1,22 @@
 const USERS_API =
     "http://localhost:5000/api/users";
 
-const CURRENT_USER_EMAIL =
-    "sarah@innovnest.com";
-
 let allUsers = [];
 let currentUser = null;
 
 
 document.addEventListener(
     "DOMContentLoaded",
-    () => {
+    async () => {
 
         console.log(
             "Community page loaded"
         );
+
+        if (typeof requireAuth === "function") {
+            currentUser = await requireAuth();
+            if (!currentUser) return;
+        }
 
         setupNavigation();
 
@@ -49,15 +51,6 @@ async function loadCommunity() {
 
         allUsers =
             await response.json();
-
-
-        currentUser =
-            allUsers.find(
-                user =>
-                    user.email ===
-                    CURRENT_USER_EMAIL
-            );
-
 
         updateSidebar();
 
@@ -104,6 +97,11 @@ async function loadCommunity() {
 function updateSidebar() {
 
     if (!currentUser) {
+        return;
+    }
+
+    if (typeof updateSidebarUser === "function") {
+        updateSidebarUser(currentUser);
         return;
     }
 

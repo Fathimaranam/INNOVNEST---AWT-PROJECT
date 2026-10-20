@@ -61,15 +61,16 @@
 
         <!-- User section -->
 
-        <div class="sidebar-user">
+        <div class="sidebar-user" id="sidebarUserSection">
 
-            <div class="user-avatar">
-                S
+            <div class="user-avatar" id="sidebarAvatar">
+                ?
             </div>
 
             <div>
-                <strong>Sarah Jenkins</strong>
-                <small id="sidebarEmail">sarah@innovnest.com</small>
+                <strong id="sidebarName">Guest</strong>
+                <small id="sidebarEmail">Not logged in</small>
+                <button id="sidebarLogoutBtn" class="sidebar-logout-btn" type="button">Log out</button>
             </div>
 
         </div>
@@ -314,6 +315,7 @@
 
     <!-- JavaScript -->
 
+    <script src="js/session.js"></script>
     <script src="js/frontpage.js"></script>
 
 </body>

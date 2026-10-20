@@ -1,5 +1,6 @@
 const express = require("express");
 const Message = require("../models/message");
+const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -83,22 +84,23 @@ router.get("/:user1/:user2", async (req, res) => {
 // SEND NEW MESSAGE
 // ==========================================
 
-router.post("/", async (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
 
     try {
 
         const {
-            sender,
             receiver,
             message
         } = req.body;
 
+        // Sender is derived from the authenticated user
+        const sender = req.user._id;
 
-        if (!sender || !receiver || !message) {
+        if (!receiver || !message) {
 
             return res.status(400).json({
                 message:
-                    "Sender, receiver and message are required"
+                    "Receiver and message are required"
             });
 
         }

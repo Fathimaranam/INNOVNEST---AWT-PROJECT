@@ -4,12 +4,6 @@ const MESSAGES_API =
 const USERS_API =
     "http://localhost:5000/api/users";
 
-
-// Sarah is our current demo user
-const CURRENT_USER_EMAIL =
-    "sarah@innovnest.com";
-
-
 let currentUser = null;
 
 let allMessages = [];
@@ -24,11 +18,17 @@ let selectedUser = null;
 
 document.addEventListener(
     "DOMContentLoaded",
-    () => {
+    async () => {
 
         console.log(
             "Messages page loaded"
         );
+
+        if (typeof requireAuth === "function") {
+            currentUser = await requireAuth();
+            if (!currentUser) return;
+            currentUser._id = currentUser._id || currentUser.id;
+        }
 
         setupNavigation();
 
@@ -68,21 +68,20 @@ async function loadMessages() {
             await usersResponse.json();
 
 
-        currentUser =
-            allUsers.find(
-                user =>
-                    user.email ===
-                    CURRENT_USER_EMAIL
-            );
+        if (!currentUser && typeof fetchCurrentUser === "function") {
+            currentUser = await fetchCurrentUser();
+        }
 
 
         if (!currentUser) {
 
             throw new Error(
-                "Current demo user not found"
+                "Current user session not found"
             );
 
         }
+
+        currentUser._id = currentUser._id || currentUser.id;
 
 
         updateSidebarUser();
@@ -148,6 +147,15 @@ async function loadMessages() {
 ================================ */
 
 function updateSidebarUser() {
+
+    if (!currentUser) {
+        return;
+    }
+
+    if (typeof window.InnovNestAuth?.updateSidebarUser === "function") {
+        window.InnovNestAuth.updateSidebarUser(currentUser);
+        return;
+    }
 
     const firstLetter =
         currentUser.name
@@ -668,6 +676,8 @@ function setupMessageForm() {
 
             try {
 
+                const token = typeof getToken === "function" ? getToken() : localStorage.getItem("token");
+
                 const response =
                     await fetch(
                         MESSAGES_API,
@@ -677,14 +687,13 @@ function setupMessageForm() {
 
                             headers: {
                                 "Content-Type":
-                                    "application/json"
+                                    "application/json",
+                                "Authorization":
+                                    `Bearer ${token}`
                             },
 
                             body:
                                 JSON.stringify({
-
-                                    sender:
-                                        currentUser._id,
 
                                     receiver:
                                         selectedUser._id,

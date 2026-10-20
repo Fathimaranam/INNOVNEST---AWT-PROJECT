@@ -1,23 +1,20 @@
 const USERS_API = "http://localhost:5000/api/users";
 const IDEAS_API = "http://localhost:5000/api/ideas";
 
-/*
-    For now we use Sarah Jenkins as the
-    current logged-in/demo user.
-
-    Later, this can be replaced with
-    real login/session information.
-*/
-
-const CURRENT_USER_EMAIL = "sarah@innovnest.com";
 
 let currentUser = null;
 let currentUserIdeas = [];
 
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
 
     console.log("Profile page loaded");
+
+    if (typeof requireAuth === "function") {
+        currentUser = await requireAuth();
+        if (!currentUser) return;
+        currentUser._id = currentUser._id || currentUser.id;
+    }
 
     setupNavigation();
 
@@ -36,40 +33,19 @@ async function loadProfile() {
 
     try {
 
-        const response =
-            await fetch(USERS_API);
-
-        if (!response.ok) {
-
-            throw new Error(
-                "Unable to load users"
-            );
-
+        if (!currentUser && typeof fetchCurrentUser === "function") {
+            currentUser = await fetchCurrentUser();
         }
-
-        const users =
-            await response.json();
-
-        currentUser =
-            users.find(
-                user =>
-                    user.email === CURRENT_USER_EMAIL
-            );
-
 
         if (!currentUser) {
-
-            throw new Error(
-                "Demo user not found"
-            );
-
+            throw new Error("User session not found");
         }
 
+        currentUser._id = currentUser._id || currentUser.id;
 
         displayProfile(currentUser);
 
         await loadUserIdeas(currentUser._id);
-
 
     } catch (error) {
 
@@ -97,6 +73,10 @@ function displayProfile(user) {
             ? user.name.charAt(0).toUpperCase()
             : "U";
 
+
+    if (typeof updateSidebarUser === "function") {
+        updateSidebarUser(user);
+    }
 
     document.getElementById("profileAvatar")
         .textContent = firstLetter;
@@ -499,6 +479,7 @@ async function updateProfile(event) {
         message.textContent =
             "Saving...";
 
+        const token = typeof getToken === "function" ? getToken() : localStorage.getItem("token");
 
         const response =
             await fetch(
@@ -508,7 +489,9 @@ async function updateProfile(event) {
 
                     headers: {
                         "Content-Type":
-                            "application/json"
+                            "application/json",
+                        "Authorization":
+                            `Bearer ${token}`
                     },
 
                     body: JSON.stringify({
@@ -537,6 +520,8 @@ async function updateProfile(event) {
         currentUser =
             result;
 
+        currentUser._id = currentUser._id || currentUser.id;
+        localStorage.setItem("user", JSON.stringify(currentUser));
 
         displayProfile(
             currentUser

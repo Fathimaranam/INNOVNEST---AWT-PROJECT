@@ -8,6 +8,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     console.log("Frontpage loaded");
 
+    if (typeof fetchCurrentUser === "function") {
+        fetchCurrentUser().then(user => {
+            if (typeof updateSidebarUser === "function") {
+                updateSidebarUser(user);
+            }
+        });
+    }
+
     setupNavigation();
 
     setupButtons();

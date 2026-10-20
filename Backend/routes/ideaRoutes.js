@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const Idea = require("../models/idea");
+const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -92,7 +93,7 @@ router.get("/:id", async (req, res) => {
 // CREATE IDEA
 // ==========================================
 
-router.post("/", async (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
 
     try {
 
@@ -102,8 +103,7 @@ router.post("/", async (req, res) => {
             category,
             stage,
             visibility,
-            status,
-            createdBy
+            status
         } = req.body;
 
 
@@ -127,7 +127,7 @@ router.post("/", async (req, res) => {
         }
 
 
-        // Create idea
+        // Create idea — createdBy is set from the authenticated user
         const newIdea = new Idea({
 
             title: title.trim(),
@@ -142,7 +142,7 @@ router.post("/", async (req, res) => {
 
             status,
 
-            createdBy
+            createdBy: req.user._id
 
         });
 
@@ -173,7 +173,7 @@ router.post("/", async (req, res) => {
 // UPDATE IDEA
 // ==========================================
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", authMiddleware, async (req, res) => {
 
     try {
 
@@ -233,7 +233,7 @@ router.put("/:id", async (req, res) => {
 // DELETE IDEA
 // ==========================================
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", authMiddleware, async (req, res) => {
 
     try {
 

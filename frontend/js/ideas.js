@@ -2,9 +2,14 @@ const API_URL = "http://localhost:5000/api/ideas";
 
 let allIdeas = [];
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
 
     console.log("Ideas page loaded");
+
+    if (typeof requireAuth === "function") {
+        const user = await requireAuth();
+        if (!user) return;
+    }
 
     setupNavigation();
 
@@ -312,13 +317,16 @@ function setupIdeaForm() {
                 "Publishing idea...";
 
 
+            const token = typeof getToken === "function" ? getToken() : localStorage.getItem("token");
+
             const response =
                 await fetch(API_URL, {
 
                     method: "POST",
 
                     headers: {
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
                     },
 
                     body: JSON.stringify(ideaData)
