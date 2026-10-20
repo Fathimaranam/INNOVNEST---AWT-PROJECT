@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="theme-color" content="#f6f8fb">
+
+	<title>Log in | InnovNest</title>
+
+	<link rel="stylesheet" href="css/login.css">
+	<script src="js/login.js" defer></script>
+</head>
+
+<body class="login-body">
+	<main class="login-page">
+		<header class="login-topbar">
+			<a class="login-brand" href="login.html" aria-label="InnovNest login">
+				<span class="login-brand-mark" aria-hidden="true">I</span>
+				<span>InnovNest</span>
+			</a>
+		</header>
+
+		<div class="login-layout">
+			<section class="login-card" aria-labelledby="login-heading">
+				<div class="login-card-heading">
+					<p class="login-eyebrow">Your network is waiting</p>
+					<h1 id="login-heading">Welcome back</h1>
+					<p>Log in to continue building, connecting and innovating.</p>
+				</div>
+
+				<form id="loginForm" class="login-form" novalidate>
+					<div class="login-field">
+						<label for="email">Email address</label>
+						<input
+							id="email"
+							name="email"
+							type="email"
+							autocomplete="email"
+							placeholder="you@example.com"
+							required
+							aria-describedby="emailError"
+						>
+						<span class="login-field-error" id="emailError"></span>
+					</div>
+
+					<div class="login-field">
+						<label for="password">Password</label>
+						<div class="login-password-wrap">
+							<input
+								id="password"
+								name="password"
+								type="password"
+								autocomplete="current-password"
+								placeholder="Enter your password"
+								minlength="8"
+								required
+								aria-describedby="passwordError"
+							>
+							<button
+								class="password-toggle"
+								id="passwordToggle"
+								type="button"
+								aria-label="Show password"
+								aria-pressed="false"
+							>
+								<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+									<path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"></path>
+									<circle cx="12" cy="12" r="2.5"></circle>
+								</svg>
+								<span class="visually-hidden">Show or hide password</span>
+							</button>
+						</div>
+						<span class="login-field-error" id="passwordError"></span>
+					</div>
+
+					<div class="login-options">
+						<label class="remember-option" for="rememberMe">
+							<input id="rememberMe" name="rememberMe" type="checkbox">
+							<span>Remember me</span>
+						</label>
+						<a class="login-text-link" id="forgotPasswordLink" href="#forgot-password">Forgot password?</a>
+					</div>
+
+					<p class="login-message" id="loginMessage" role="alert" aria-live="polite"></p>
+
+					<button class="login-submit" id="loginSubmit" type="submit">
+						<span class="login-spinner" aria-hidden="true"></span>
+						<span id="loginSubmitLabel">Log in</span>
+					</button>
+				</form>
+
+				<p class="login-signup">
+					Don’t have an account?
+					<a class="login-text-link" href="signup.html">Create an account</a>
+				</p>
+			</section>
+
+			<aside class="login-aside" aria-label="InnovNest community">
+				<img
+					src="https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&amp;fit=crop&amp;w=1100&amp;q=85"
+					alt="Startup team sharing ideas around a table"
+				>
+				<div class="login-aside-caption">
+					<span class="login-aside-kicker">Ideas grow together</span>
+					<p>Find the people who help your next big idea take shape.</p>
+				</div>
+			</aside>
+		</div>
+
+		<footer class="login-footer">
+			<span>InnovNest</span>
+			<span>Build something meaningful.</span>
+		</footer>
+	</main>
+</body>
+
+</html>

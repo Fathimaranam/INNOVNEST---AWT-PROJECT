@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="theme-color" content="#f6f8fb">
+
+	<title>Create account | InnovNest</title>
+
+	<link rel="stylesheet" href="css/login.css">
+	<script src="js/signup.js" defer></script>
+</head>
+
+<body class="login-body">
+	<main class="login-page">
+		<header class="login-topbar">
+			<a class="login-brand" href="login.html" aria-label="InnovNest login">
+				<span class="login-brand-mark" aria-hidden="true">I</span>
+				<span>InnovNest</span>
+			</a>
+			<a class="login-back-link" href="login.html">Log in</a>
+		</header>
+
+		<div class="login-layout">
+			<section class="login-card" aria-labelledby="signup-heading">
+				<div class="login-card-heading">
+					<p class="login-eyebrow">Make room for what’s next</p>
+					<h1 id="signup-heading">Create your account</h1>
+					<p>Join founders, students and mentors building what comes next.</p>
+				</div>
+
+				<form id="signupForm" class="login-form" novalidate>
+					<div class="login-field">
+						<label for="name">Full name</label>
+						<input
+							id="name"
+							name="name"
+							type="text"
+							autocomplete="name"
+							placeholder="Your name"
+							maxlength="80"
+							required
+							aria-describedby="nameError"
+						>
+						<span class="login-field-error" id="nameError"></span>
+					</div>
+
+					<div class="login-field">
+						<label for="email">Email address</label>
+						<input
+							id="email"
+							name="email"
+							type="email"
+							autocomplete="email"
+							placeholder="you@example.com"
+							required
+							aria-describedby="emailError"
+						>
+						<span class="login-field-error" id="emailError"></span>
+					</div>
+
+					<div class="login-field">
+						<label for="password">Password</label>
+						<div class="login-password-wrap">
+							<input
+								id="password"
+								name="password"
+								type="password"
+								autocomplete="new-password"
+								placeholder="At least 8 characters"
+								minlength="8"
+								required
+								aria-describedby="passwordError"
+							>
+							<button class="password-toggle" type="button" data-password-toggle="password" aria-label="Show password" aria-pressed="false">
+								<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+									<path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"></path>
+									<circle cx="12" cy="12" r="2.5"></circle>
+								</svg>
+								<span class="visually-hidden">Show or hide password</span>
+							</button>
+						</div>
+						<span class="login-field-error" id="passwordError"></span>
+					</div>
+
+					<div class="login-field">
+						<label for="confirmPassword">Confirm password</label>
+						<div class="login-password-wrap">
+							<input
+								id="confirmPassword"
+								name="confirmPassword"
+								type="password"
+								autocomplete="new-password"
+								placeholder="Enter your password again"
+								minlength="8"
+								required
+								aria-describedby="confirmPasswordError"
+							>
+							<button class="password-toggle" type="button" data-password-toggle="confirmPassword" aria-label="Show confirmation password" aria-pressed="false">
+								<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+									<path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"></path>
+									<circle cx="12" cy="12" r="2.5"></circle>
+								</svg>
+								<span class="visually-hidden">Show or hide confirmation password</span>
+							</button>
+						</div>
+						<span class="login-field-error" id="confirmPasswordError"></span>
+					</div>
+
+					<p class="login-message" id="signupMessage" role="alert" aria-live="polite"></p>
+
+					<button class="login-submit" id="signupSubmit" type="submit">
+						<span class="login-spinner" aria-hidden="true"></span>
+						<span id="signupSubmitLabel">Create account</span>
+					</button>
+				</form>
+
+				<p class="login-signup">
+					Already have an account?
+					<a class="login-text-link" href="login.html">Log in</a>
+				</p>
+			</section>
+
+			<aside class="login-aside" aria-label="InnovNest community">
+				<img
+					src="https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&amp;fit=crop&amp;w=1100&amp;q=85"
+					alt="Startup team sharing ideas around a table"
+				>
+				<div class="login-aside-caption">
+					<span class="login-aside-kicker">Ideas grow together</span>
+					<p>Find the people who help your next big idea take shape.</p>
+				</div>
+			</aside>
+		</div>
+
+		<footer class="login-footer">
+			<span>InnovNest</span>
+			<span>Build something meaningful.</span>
+		</footer>
+	</main>
+</body>
+
+</html>

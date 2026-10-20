@@ -24,10 +24,12 @@ const Message = require("./models/message");
 const ideaRoutes = require("./routes/ideaRoutes");
 const userRoutes = require("./routes/userRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const authRoutes = require("./routes/authRoutes");
 // Use routes
 app.use("/api/ideas", ideaRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/auth", authRoutes);
 
 console.log("Starting AWT backend...");
 console.log(
