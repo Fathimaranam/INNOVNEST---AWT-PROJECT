@@ -52,6 +52,14 @@ async function runTests() {
         const userC = existingUsers[2] || existingUsers[0];
         const userD = existingUsers[3] || existingUsers[1];
 
+        // Snapshot existing data so Test 10 can check nothing was lost
+        // (instead of hard-coded counts that only matched the old sample data)
+        const startCounts = {
+            ideas: await Idea.countDocuments(),
+            messages: await Message.countDocuments(),
+            users: await User.countDocuments()
+        };
+
         const tokenA = jwt.sign({ id: userA._id, email: userA.email }, process.env.JWT_SECRET, { expiresIn: "1h" });
         const tokenB = jwt.sign({ id: userB._id, email: userB.email }, process.env.JWT_SECRET, { expiresIn: "1h" });
         const expiredToken = jwt.sign({ id: userA._id, email: userA.email }, process.env.JWT_SECRET, { expiresIn: "-1s" });
@@ -327,9 +335,11 @@ async function runTests() {
             const ideaCount = await Idea.countDocuments();
             const messageCount = await Message.countDocuments();
             const userCount = await User.countDocuments();
-            const passed = ideaCount >= 12 && messageCount >= 14 && userCount >= 6;
+            const passed = ideaCount >= startCounts.ideas &&
+                messageCount >= startCounts.messages &&
+                userCount >= startCounts.users;
             record(10, "Existing ideas and message history remain fully preserved", passed,
-                `Preserved counts -> Users: ${userCount}, Ideas: ${ideaCount}, Messages: ${messageCount}`);
+                `Users: ${startCounts.users} -> ${userCount}, Ideas: ${startCounts.ideas} -> ${ideaCount}, Messages: ${startCounts.messages} -> ${messageCount}`);
         }
 
         // --------------------------------------------------
