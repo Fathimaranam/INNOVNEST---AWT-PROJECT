@@ -62,4 +62,32 @@ async function notifyMessage(recipientId, actorId, messageDoc) {
     }
 }
 
-module.exports = { notifyFollow, notifyMessage };
+// One like notification per (liker, idea). Unliking and liking again does not
+// create a second notification or mark the existing one unread again.
+async function notifyLike(recipientId, actorId, idea) {
+    if (!recipientId || !actorId || !idea || sameId(recipientId, actorId)) return null;
+
+    const title = idea.title || "";
+
+    try {
+        return await Notification.findOneAndUpdate(
+            { recipient: recipientId, actor: actorId, type: "like", entityId: idea._id },
+            {
+                $setOnInsert: {
+                    entityType: "Idea",
+                    preview: title.length > 120 ? title.slice(0, 117) + "..." : title,
+                    read: false,
+                    readAt: null,
+                    count: 1,
+                    lastEventAt: new Date()
+                }
+            },
+            { upsert: true, returnDocument: "after", setDefaultsOnInsert: false }
+        );
+    } catch (error) {
+        console.error("Failed to create like notification:", error.message);
+        return null;
+    }
+}
+
+module.exports = { notifyFollow, notifyMessage, notifyLike };

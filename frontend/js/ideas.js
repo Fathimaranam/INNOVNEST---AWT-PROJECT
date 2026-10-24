@@ -137,6 +137,14 @@ function displayIdeas(ideas) {
 
         card.className = "idea-card";
 
+        card.id = `idea-${idea._id}`;
+
+        const likedByMe = !!currentUserId &&
+            Array.isArray(idea.likedBy) &&
+            idea.likedBy.some(id => String(id) === String(currentUserId));
+
+        const likeCount = idea.likes || 0;
+
         card.innerHTML = `
 
             <div class="idea-author-header">
@@ -233,9 +241,17 @@ function displayIdeas(ideas) {
                     ${escapeHTML(idea.stage || "Idea Stage")}
                 </span>
 
-                <span class="idea-likes">
-                    ❤️ ${idea.likes || 0} likes
-                </span>
+                <button
+                    type="button"
+                    class="idea-like-btn ${likedByMe ? "liked" : ""}"
+                    data-idea-id="${idea._id}"
+                    aria-pressed="${likedByMe ? "true" : "false"}"
+                    aria-label="${likedByMe ? "Unlike" : "Like"} this idea"
+                >
+                    <span class="idea-like-icon" aria-hidden="true">${likedByMe ? "♥" : "♡"}</span>
+                    <span class="idea-like-count">${likeCount}</span>
+                    <span>${likeCount === 1 ? "like" : "likes"}</span>
+                </button>
 
             </div>
 
@@ -244,6 +260,106 @@ function displayIdeas(ideas) {
         container.appendChild(card);
 
     });
+
+    setupLikeButtons(container);
+
+    highlightLinkedIdea();
+
+}
+
+
+/* ===============================
+   LIKES (one per member, saved in MongoDB)
+================================ */
+
+function setupLikeButtons(container) {
+
+    container.querySelectorAll(".idea-like-btn").forEach((button) => {
+
+        button.addEventListener("click", async () => {
+
+            const token = typeof getToken === "function" ? getToken() : localStorage.getItem("token");
+
+            if (!token || !currentUser) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            const ideaId = button.dataset.ideaId;
+            const isLiked = button.getAttribute("aria-pressed") === "true";
+
+            button.disabled = true;
+
+            try {
+
+                const response = await fetch(`${API_URL}/${ideaId}/like`, {
+                    method: isLiked ? "DELETE" : "POST",
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || "Could not update like");
+                }
+
+                // Keep local data in sync so search/filter re-renders stay correct
+                const myId = String(currentUser._id || currentUser.id);
+                const idea = allIdeas.find(i => String(i._id) === String(ideaId));
+
+                if (idea) {
+                    const others = (idea.likedBy || []).filter(id => String(id) !== myId);
+                    idea.likedBy = result.liked ? [...others, myId] : others;
+                    idea.likes = result.likes;
+                }
+
+                button.classList.toggle("liked", result.liked);
+                button.setAttribute("aria-pressed", result.liked ? "true" : "false");
+                button.setAttribute("aria-label", `${result.liked ? "Unlike" : "Like"} this idea`);
+                button.querySelector(".idea-like-icon").textContent = result.liked ? "♥" : "♡";
+                button.querySelector(".idea-like-count").textContent = result.likes;
+                button.lastElementChild.textContent = result.likes === 1 ? "like" : "likes";
+
+                updateStatistics(allIdeas);
+
+            } catch (error) {
+
+                console.error("Like error:", error);
+                alert(error.message);
+
+            } finally {
+
+                button.disabled = false;
+
+            }
+
+        });
+
+    });
+
+}
+
+
+// Opening ideas.html?idea=<id> (e.g. from a "liked your idea" notification)
+// scrolls to that idea and briefly highlights it.
+function highlightLinkedIdea() {
+
+    const ideaId = new URLSearchParams(window.location.search).get("idea");
+
+    if (!ideaId) {
+        return;
+    }
+
+    const card = document.getElementById(`idea-${ideaId}`);
+
+    if (!card) {
+        return;
+    }
+
+    card.classList.add("idea-highlight");
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    setTimeout(() => card.classList.remove("idea-highlight"), 2500);
 
 }
 

@@ -28,6 +28,11 @@ function serialize(n) {
             ? `${actorName} sent you ${n.count} messages`
             : `${actorName} sent you a message`;
         if (actor) link = `messages.html?user=${actor._id}`;
+    } else if (n.type === "like") {
+        text = n.preview
+            ? `${actorName} liked your idea “${n.preview}”`
+            : `${actorName} liked your idea`;
+        if (n.entityId) link = `ideas.html?idea=${n.entityId}`;
     }
 
     return {
@@ -98,7 +103,7 @@ router.patch("/read-all", async (req, res) => {
         const { type, actor } = req.body || {};
 
         if (type !== undefined) {
-            if (!["follow", "message"].includes(type)) {
+            if (!["follow", "message", "like"].includes(type)) {
                 return res.status(400).json({ message: "Invalid notification type" });
             }
             filter.type = type;

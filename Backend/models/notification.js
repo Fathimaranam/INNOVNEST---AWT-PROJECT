@@ -4,7 +4,8 @@ const mongoose = require("mongoose");
 // Only event types the application genuinely supports are allowed:
 //   follow  -> someone started following the recipient
 //   message -> someone sent the recipient a direct message
-// (Ideas have no like/comment feature backed by persisted data, so no such types exist.)
+//   like    -> someone liked one of the recipient's ideas
+// (Comments do not exist in the app, so there is no comment type.)
 const notificationSchema = new mongoose.Schema(
     {
         recipient: {
@@ -22,14 +23,14 @@ const notificationSchema = new mongoose.Schema(
 
         type: {
             type: String,
-            enum: ["follow", "message"],
+            enum: ["follow", "message", "like"],
             required: true
         },
 
         // Related entity (e.g. the latest Message for a message notification)
         entityType: {
             type: String,
-            enum: ["User", "Message"],
+            enum: ["User", "Message", "Idea"],
             default: "User"
         },
 

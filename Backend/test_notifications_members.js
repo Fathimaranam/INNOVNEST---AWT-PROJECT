@@ -207,7 +207,7 @@ async function run() {
         const readAll = await api("PATCH", "/api/notifications/read-all", { token: A.token, body: {} });
         record("Mark all as read sets unread count to 0", readAll.data?.unreadCount === 0);
 
-        const badType = await api("PATCH", "/api/notifications/read-all", { token: A.token, body: { type: "like" } });
+        const badType = await api("PATCH", "/api/notifications/read-all", { token: A.token, body: { type: "comment" } });
         record("Unsupported notification types are rejected", badType.status === 400);
 
         // ---------- Profile roles ----------
@@ -229,6 +229,47 @@ async function run() {
             toInvestor.status === 200 && listed?.role === "Investor" && toStudent.data.password === undefined);
         record("Admin self-assignment blocked, unknown roles rejected, other users' roles protected",
             toAdmin.status === 403 && toJunk.status === 400 && otherRole.status === 403);
+
+        // ---------- Idea likes ----------
+        const ideaId = ci.data?._id;
+        const like1 = await api("POST", `/api/ideas/${ideaId}/like`, { token: B.token });
+        const like2 = await api("POST", `/api/ideas/${ideaId}/like`, { token: B.token });
+        const likedIdea = (await api("GET", "/api/ideas")).data.find(i => String(i._id) === String(ideaId));
+        record("Like is saved once per member (double-like stays at 1)",
+            like1.status === 200 && like1.data.liked === true && like1.data.likes === 1 &&
+            like2.data.likes === 1 && likedIdea?.likes === 1 && likedIdea.likedBy.includes(B.id),
+            `likes ${like1.data?.likes} -> ${like2.data?.likes}`);
+
+        let likeNotes = await Notification.find({ recipient: A.id, actor: B.id, type: "like" }).lean();
+        const likeList = await api("GET", "/api/notifications?limit=100", { token: A.token });
+        const likeItem = likeList.data.notifications.find(n => n.type === "like");
+        record("Liking notifies the idea's author once, linking to the idea",
+            likeNotes.length === 1 && likeItem?.link === `ideas.html?idea=${ideaId}` &&
+            likeItem.text.includes(`Test idea ${stamp}`) && likeItem.read === false);
+
+        const unlike = await api("DELETE", `/api/ideas/${ideaId}/like`, { token: B.token });
+        await api("POST", `/api/ideas/${ideaId}/like`, { token: B.token });
+        likeNotes = await Notification.find({ recipient: A.id, actor: B.id, type: "like" }).lean();
+        record("Unlike removes the like; liking again does not duplicate the notification",
+            unlike.status === 200 && unlike.data.liked === false && unlike.data.likes === 0 && likeNotes.length === 1);
+
+        const selfLike = await api("POST", `/api/ideas/${ideaId}/like`, { token: A.token });
+        const selfLikeNotes = await Notification.countDocuments({ recipient: A.id, actor: A.id });
+        record("Authors can like their own idea without notifying themselves",
+            selfLike.status === 200 && selfLike.data.likes === 2 && selfLikeNotes === 0);
+
+        const unauthLike = await api("POST", `/api/ideas/${ideaId}/like`);
+        const badLike = await api("POST", `/api/ideas/not-an-id/like`, { token: B.token });
+        const missingLike = await api("POST", `/api/ideas/${new mongoose.Types.ObjectId()}/like`, { token: B.token });
+        record("Liking requires login and a valid, existing idea",
+            unauthLike.status === 401 && badLike.status === 400 && missingLike.status === 404);
+
+        const orphanLike = await api("POST", `/api/ideas/${legacyNoAuthor.insertedId}/like`, { token: B.token });
+        await Idea.collection.updateOne({ _id: legacyDangling.insertedId }, { $set: { likes: 42 } });
+        const seeded = (await api("GET", "/api/ideas")).data.find(i => String(i._id) === String(legacyDangling.insertedId));
+        record("Ideas without an author can be liked; seeded like numbers with no real likers show 0",
+            orphanLike.status === 200 && orphanLike.data.likes === 1 && seeded?.likes === 0);
+
     } finally {
         // Remove ONLY data created by this test run
         const userIds = [...created.userIds, ...created.rawUserIds.map(String)];

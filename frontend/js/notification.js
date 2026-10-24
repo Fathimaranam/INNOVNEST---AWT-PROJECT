@@ -117,7 +117,7 @@ function render() {
 
     const visible = allNotifications.filter(n => {
         if (activeFilter === "unread" && n.read) return false;
-        if ((activeFilter === "follow" || activeFilter === "message") && n.type !== activeFilter) return false;
+        if (["follow", "message", "like"].includes(activeFilter) && n.type !== activeFilter) return false;
         if (searchTerm) {
             const hay = `${n.text} ${n.preview || ""}`.toLowerCase();
             if (!hay.includes(searchTerm)) return false;
@@ -129,7 +129,7 @@ function render() {
         list.innerHTML = `
             <div class="notification-state">
                 <strong>No notifications yet</strong>
-                <p>You'll be notified here when someone follows you or sends you a message.</p>
+                <p>You'll be notified here when someone follows you, likes your idea or sends you a message.</p>
             </div>`;
         return;
     }
@@ -151,7 +151,7 @@ function render() {
         if (n.link) item.href = n.link;
 
         const initial = n.actor && n.actor.name ? n.actor.name.charAt(0).toUpperCase() : "?";
-        const icon = n.type === "follow" ? "👤" : "💬";
+        const icon = n.type === "follow" ? "👤" : n.type === "like" ? "♥" : "💬";
 
         item.innerHTML = `
             <div class="notification-avatar" aria-hidden="true">${escapeHTML(initial)}</div>

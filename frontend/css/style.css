@@ -2270,3 +2270,50 @@ text-overflow: ellipsis;
         justify-content: center;
     }
 }
+
+/* ===============================
+   IDEA LIKES
+================================ */
+
+.idea-like-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border: 1px solid var(--border-glass-subtle, rgba(140, 168, 150, 0.35));
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.6);
+    color: var(--color-text-muted, #5e7367);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.idea-like-btn:hover {
+    border-color: var(--color-brown-accent, #8c5d37);
+    color: var(--color-brown-accent, #8c5d37);
+}
+
+.idea-like-btn.liked {
+    background: var(--color-brown-soft, #f2e9df);
+    border-color: var(--color-brown-accent, #8c5d37);
+    color: var(--color-brown-deep, #6f4728);
+}
+
+.idea-like-btn:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.idea-like-icon {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.idea-card.idea-highlight {
+    outline: 2px solid var(--color-sage-soft, #84a993);
+    outline-offset: 3px;
+    transition: outline-color 0.3s ease;
+}

@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const Idea = require("../models/idea");
 const authMiddleware = require("../middleware/authMiddleware");
 const User = require("../models/user");
+const { notifyLike } = require("../utils/notify");
 
 const router = express.Router();
 
@@ -34,8 +35,14 @@ async function withAuthors(ideaDocs) {
         const rawId = idea.createdBy ? idea.createdBy.toString() : null;
         const author = rawId ? authorMap.get(rawId) : null;
 
+        // Like count comes only from real likes (likedBy). Older documents may hold a
+        // seeded "likes" number with no likers behind it; that number is not shown.
+        const likedBy = Array.isArray(idea.likedBy) ? idea.likedBy.map(id => id.toString()) : [];
+
         return {
             ...idea,
+            likedBy,
+            likes: likedBy.length,
             createdBy: author || null,
             authorStatus: author ? "available" : (rawId ? "account_missing" : "not_recorded")
         };
@@ -202,6 +209,72 @@ router.post("/", authMiddleware, async (req, res) => {
     }
 
 });
+
+
+// ==========================================
+// LIKE / UNLIKE IDEA
+// POST   /api/ideas/:id/like  -> like (idempotent)
+// DELETE /api/ideas/:id/like  -> unlike (idempotent)
+// ==========================================
+
+async function setLike(req, res, like) {
+
+    try {
+
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: "Invalid idea ID" });
+        }
+
+        const userId = req.user._id;
+
+        // Atomic: a member can be in likedBy at most once
+        const result = like
+            ? await Idea.updateOne(
+                { _id: req.params.id, likedBy: { $ne: userId } },
+                { $addToSet: { likedBy: userId } }
+            )
+            : await Idea.updateOne(
+                { _id: req.params.id },
+                { $pull: { likedBy: userId } }
+            );
+
+        const idea = await Idea.findById(req.params.id).select("title likedBy createdBy").lean();
+
+        if (!idea) {
+            return res.status(404).json({ message: "Idea not found" });
+        }
+
+        const likes = Array.isArray(idea.likedBy) ? idea.likedBy.length : 0;
+
+        // Keep the stored count in sync with the real likers
+        await Idea.updateOne({ _id: idea._id }, { $set: { likes } });
+
+        // Notify the author only for a genuinely new like by someone else
+        if (like && result.modifiedCount === 1 && idea.createdBy) {
+            const authorExists = await User.exists({ _id: idea.createdBy });
+            if (authorExists) {
+                await notifyLike(idea.createdBy, userId, idea);
+            }
+        }
+
+        res.status(200).json({
+            ideaId: idea._id,
+            liked: like,
+            likes
+        });
+
+    } catch (error) {
+
+        console.error("Error updating like:", error.message);
+
+        res.status(500).json({ message: "Failed to update like" });
+
+    }
+
+}
+
+router.post("/:id/like", authMiddleware, (req, res) => setLike(req, res, true));
+router.delete("/:id/like", authMiddleware, (req, res) => setLike(req, res, false));
 
 
 // ==========================================
