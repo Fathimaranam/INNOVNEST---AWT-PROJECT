@@ -13,6 +13,10 @@ document.addEventListener("DOMContentLoaded", () => {
             if (typeof updateSidebarUser === "function") {
                 updateSidebarUser(user);
             }
+            // Show the real unread notification count for logged-in users
+            if (user && window.InnovNestAuth && typeof window.InnovNestAuth.refreshNotificationBadge === "function") {
+                window.InnovNestAuth.refreshNotificationBadge();
+            }
         });
     }
 

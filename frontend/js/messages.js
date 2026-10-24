@@ -479,6 +479,8 @@ function selectConversation(user) {
 
     selectedUser = user;
 
+    markConversationNotificationsRead(user);
+
 
     document.getElementById(
         "chatEmpty"
@@ -979,5 +981,46 @@ function escapeHTML(value) {
         value ?? "";
 
     return div.innerHTML;
+
+}
+
+
+/* ===============================
+   NOTIFICATIONS: opening a conversation
+   marks that sender's message notifications as read
+================================ */
+
+async function markConversationNotificationsRead(user) {
+
+    const userId = user && (user._id || user.id);
+    const token = typeof getToken === "function" ? getToken() : localStorage.getItem("token");
+
+    if (!userId || !token) {
+        return;
+    }
+
+    try {
+
+        const res = await fetch("http://localhost:5000/api/notifications/read-all", {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ type: "message", actor: String(userId) })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            if (typeof setNotificationBadge === "function") {
+                setNotificationBadge(data.unreadCount);
+            }
+        }
+
+    } catch (error) {
+
+        console.warn("Could not update message notifications:", error.message);
+
+    }
 
 }

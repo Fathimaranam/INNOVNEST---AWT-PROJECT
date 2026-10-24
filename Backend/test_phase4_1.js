@@ -101,8 +101,10 @@ async function runTests() {
             const passedCreate = res.status === 201 && !!data._id;
             record(2, "Authenticated users can create ideas", passedCreate, `Status: ${res.status}, ID: ${data._id}`);
 
-            const passedOwner = data.createdBy === userA._id.toString() && data.createdBy !== userB._id.toString();
-            record(3, "The authenticated user becomes the actual idea creator (impersonation blocked)", passedOwner, `Creator ID: ${data.createdBy}, User A ID: ${userA._id}`);
+            // createdBy is returned as the author object ({ _id, name, role }); accept an ID string too
+            const creatorId = data.createdBy && typeof data.createdBy === "object" ? String(data.createdBy._id) : data.createdBy;
+            const passedOwner = creatorId === userA._id.toString() && creatorId !== userB._id.toString();
+            record(3, "The authenticated user becomes the actual idea creator (impersonation blocked)", passedOwner, `Creator ID: ${creatorId}, User A ID: ${userA._id}`);
         }
 
         // --------------------------------------------------

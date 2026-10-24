@@ -21,31 +21,38 @@
         <nav class="sidebar-nav">
 
             <button class="nav-item" id="navHome">
-                🏠 <span>Home</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                <span>Home</span>
             </button>
 
             <button class="nav-item" id="navDiscover">
-                ◉ <span>Discover</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+                <span>Discover</span>
             </button>
 
             <button class="nav-item" id="navIdeas">
-                💡 <span>Ideas</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path><path d="M9 18h6"></path><path d="M10 22h4"></path></svg>
+                <span>Ideas</span>
             </button>
 
             <button class="nav-item" id="navCommunity">
-                👥 <span>Community</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                <span>Community</span>
             </button>
 
             <button class="nav-item" id="navMessages">
-                💬 <span>Messages</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                <span>Messages</span>
             </button>
 
             <button class="nav-item active" id="navNotifications">
-                🔔 <span>Notifications</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+                <span>Notifications</span>
             </button>
 
             <button class="nav-item" id="navProfile">
-                👤 <span>Profile</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>Profile</span>
             </button>
 
         </nav>
@@ -78,9 +85,7 @@
 
             <div class="search-container">
 
-                <span class="search-icon">
-                    ⌕
-                </span>
+                <svg class="search-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
 
                 <input
                     type="text"
@@ -92,15 +97,16 @@
 
             <div class="topbar-actions">
 
-                <button class="icon-button" id="notificationTopBtn">
-                    🔔
+                <button class="icon-button" id="notificationTopBtn" aria-label="Notifications">
+                    <svg class="topbar-bell-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
                 </button>
 
                 <button
                     class="post-button"
                     id="postIdeaBtn"
                 >
-                    + &nbsp; Post Idea
+                    <svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Post Idea
                 </button>
 
             </div>
@@ -116,28 +122,26 @@
                     <h1>Notifications</h1>
 
                     <p>
-                        Stay updated with ideas, messages and community activity.
+                        New followers and direct messages from InnovNest members.
                     </p>
                 </div>
 
-                <button id="markAllRead" class="secondary-button" style="padding: 8px 14px; font-size: 13px;">
-                    Mark All as Read
+                <button id="markAllRead" class="secondary-button notification-mark-all" type="button" disabled>
+                    Mark all as read
                 </button>
 
             </div>
 
-            <div class="notification-list" style="margin-top: 20px; display: flex; flex-direction: column; gap: 12px;">
+            <div class="notification-toolbar" role="tablist" aria-label="Filter notifications">
+                <button class="notification-filter active" type="button" data-filter="all">All</button>
+                <button class="notification-filter" type="button" data-filter="unread">Unread</button>
+                <button class="notification-filter" type="button" data-filter="follow">Follows</button>
+                <button class="notification-filter" type="button" data-filter="message">Messages</button>
+            </div>
 
-                <div class="notification-item unread" style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f8fafc;">
-                    <strong>Welcome to InnovNest!</strong>
-                    <p style="margin-top: 4px; font-size: 13px; color: #4b5563;">Explore startup ideas, pitch your own venture, and build your network.</p>
-                </div>
-
-                <div class="notification-item" style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff;">
-                    <strong>Community Tip</strong>
-                    <p style="margin-top: 4px; font-size: 13px; color: #4b5563;">Complete your profile to connect with founders and mentors faster.</p>
-                </div>
-
+            <!-- Filled from GET /api/notifications — no placeholder entries -->
+            <div class="notification-list" id="notificationList" aria-live="polite">
+                <div class="notification-state">Loading notifications...</div>
             </div>
 
         </section>

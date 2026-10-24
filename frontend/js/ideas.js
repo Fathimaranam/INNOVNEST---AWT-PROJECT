@@ -120,7 +120,11 @@ function displayIdeas(ideas) {
     ideas.forEach((idea) => {
 
         const hasAuthor = idea.createdBy && typeof idea.createdBy === "object" && idea.createdBy.name;
-        const authorName = hasAuthor ? idea.createdBy.name : "Author unavailable";
+        // authorStatus comes from the API and explains a missing author honestly
+        const missingAuthorLabel = idea.authorStatus === "account_missing"
+            ? "Author account no longer exists"
+            : "Author not recorded (legacy idea)";
+        const authorName = hasAuthor ? idea.createdBy.name : missingAuthorLabel;
         const authorId = hasAuthor ? (idea.createdBy._id || idea.createdBy.id) : null;
         const authorRole = hasAuthor ? (idea.createdBy.role || "Founder") : "";
         const authorInitial = hasAuthor ? authorName.charAt(0).toUpperCase() : "?";
@@ -188,7 +192,7 @@ function displayIdeas(ideas) {
                             `
                             : `
                                 <span class="idea-no-author">
-                                    Author unavailable
+                                    No profile available
                                 </span>
                             `
                     }
@@ -426,6 +430,7 @@ function setupIdeaForm() {
             }
 
 
+            // Local UI feedback only — no self-notification is stored
             message.textContent =
                 "✅ Idea published successfully!";
 

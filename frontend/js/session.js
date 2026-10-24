@@ -3,6 +3,7 @@
 // ==========================================
 
 const API_AUTH_URL = "http://localhost:5000/api/auth";
+const API_NOTIFICATIONS_URL = "http://localhost:5000/api/notifications";
 
 /**
  * Get the stored JWT token.
@@ -110,6 +111,7 @@ async function requireAuth() {
     }
 
     updateSidebarUser(user);
+    setupNotificationIndicators();
     return user;
 }
 
@@ -175,6 +177,88 @@ function updateSidebarUser(user) {
     }
 }
 
+// ==========================================
+// Notification unread indicators (real backend data only)
+// ==========================================
+
+let lastBadgeRefresh = 0;
+
+/**
+ * Render the unread count on the sidebar Notifications item and the topbar bell.
+ * A count of 0 (or unknown) shows no badge — never a placeholder number.
+ * @param {number} count
+ */
+function setNotificationBadge(count) {
+    const value = Number.isFinite(count) && count > 0 ? (count > 99 ? "99+" : String(count)) : "";
+
+    [
+        { el: document.getElementById("navNotifications"), cls: "nav-badge" },
+        { el: document.getElementById("notificationTopBtn"), cls: "icon-badge" }
+    ].forEach(({ el, cls }) => {
+        if (!el) return;
+        let badge = el.querySelector("." + cls);
+        if (!value) {
+            if (badge) badge.remove();
+            el.removeAttribute("data-unread");
+            return;
+        }
+        if (!badge) {
+            badge = document.createElement("span");
+            badge.className = cls;
+            el.appendChild(badge);
+        }
+        badge.textContent = value;
+        el.setAttribute("data-unread", value);
+        el.setAttribute("aria-label", `Notifications, ${value} unread`);
+    });
+}
+
+/**
+ * Fetch the unread count from GET /api/notifications/unread-count and update badges.
+ * Silently leaves badges untouched if the request fails.
+ */
+async function refreshNotificationBadge() {
+    const token = getToken();
+    if (!token) return;
+    lastBadgeRefresh = Date.now();
+    try {
+        const res = await fetch(`${API_NOTIFICATIONS_URL}/unread-count`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setNotificationBadge(data.unreadCount);
+    } catch (error) {
+        console.warn("Could not refresh notification count:", error.message);
+    }
+}
+
+let notificationIndicatorsReady = false;
+
+/**
+ * Load the unread count once per page, make the topbar bell open Notifications,
+ * and refresh when the tab regains focus (at most every 30s) — no constant polling.
+ */
+function setupNotificationIndicators() {
+    if (notificationIndicatorsReady) return;
+    notificationIndicatorsReady = true;
+
+    const bell = document.getElementById("notificationTopBtn");
+    if (bell) {
+        bell.addEventListener("click", () => {
+            window.location.href = "notification.html";
+        });
+    }
+
+    refreshNotificationBadge();
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && Date.now() - lastBadgeRefresh > 30000) {
+            refreshNotificationBadge();
+        }
+    });
+}
+
 // Export to global scope
 window.InnovNestAuth = {
     getToken,
@@ -185,7 +269,9 @@ window.InnovNestAuth = {
     logout,
     requireAuth,
     redirectIfAuthenticated,
-    updateSidebarUser
+    updateSidebarUser,
+    setNotificationBadge,
+    refreshNotificationBadge
 };
 
 window.getToken = getToken;
@@ -195,3 +281,5 @@ window.fetchCurrentUser = fetchCurrentUser;
 window.logout = logout;
 window.requireAuth = requireAuth;
 window.updateSidebarUser = updateSidebarUser;
+window.setNotificationBadge = setNotificationBadge;
+window.refreshNotificationBadge = refreshNotificationBadge;

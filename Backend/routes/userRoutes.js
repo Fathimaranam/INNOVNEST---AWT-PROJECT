@@ -2,6 +2,15 @@ const express = require("express");
 const mongoose = require("mongoose");
 const User = require("../models/user");
 const authMiddleware = require("../middleware/authMiddleware");
+const { notifyFollow } = require("../utils/notify");
+
+// Fields that are safe to show publicly (never email, password or tokens)
+const PUBLIC_USER_FIELDS = "name role bio location skills followers following connections createdAt";
+const PUBLIC_RELATION_FIELDS = "name role bio location";
+
+// A genuine registered member is an account created through signup (it has a password hash).
+// Development seed accounts inserted without credentials cannot log in and are not listed as members.
+const REGISTERED_MEMBER_FILTER = { password: { $type: "string", $ne: "" } };
 
 const router = express.Router();
 
@@ -28,8 +37,8 @@ router.get("/", async (req, res) => {
     try {
 
         // Explicitly exclude password hash and sensitive auth fields
-        const users = await User.find()
-            .select("-password")
+        const users = await User.find(REGISTERED_MEMBER_FILTER)
+            .select(PUBLIC_USER_FIELDS)
             .sort({ createdAt: -1 });
 
         const formattedUsers = users.map(u => {
@@ -75,9 +84,9 @@ router.get("/:id", async (req, res) => {
 
         // Explicitly exclude password hash, populate followers & following
         const user = await User.findById(req.params.id)
-            .select("-password")
-            .populate("followers", "name email role profileImage bio")
-            .populate("following", "name email role profileImage bio");
+            .select(PUBLIC_USER_FIELDS)
+            .populate("followers", PUBLIC_RELATION_FIELDS)
+            .populate("following", PUBLIC_RELATION_FIELDS);
 
         if (!user) {
 
@@ -163,13 +172,20 @@ router.post("/:id/follow", authMiddleware, async (req, res) => {
         // Persist the relationship in MongoDB:
         // Target's followers list includes followerId
         // Follower's following list includes targetId
-        await User.findByIdAndUpdate(targetId, {
-            $addToSet: { followers: followerId }
-        });
+        // Only counts as a new follow if the follower was not already in the list
+        // (guards against double-clicks / concurrent requests creating duplicate notifications)
+        const followResult = await User.updateOne(
+            { _id: targetId, followers: { $ne: followerId } },
+            { $addToSet: { followers: followerId } }
+        );
 
-        await User.findByIdAndUpdate(followerId, {
+        await User.updateOne({ _id: followerId }, {
             $addToSet: { following: targetId }
         });
+
+        if (followResult.modifiedCount === 1) {
+            await notifyFollow(targetId, followerId);
+        }
 
         const updatedTarget = await User.findById(targetId);
         const updatedFollower = await User.findById(followerId);
@@ -250,11 +266,11 @@ const handleUnfollow = async (req, res) => {
         }
 
         // Remove relationship consistently from both views
-        await User.findByIdAndUpdate(targetId, {
+        await User.updateOne({ _id: targetId }, {
             $pull: { followers: followerId }
         });
 
-        await User.findByIdAndUpdate(followerId, {
+        await User.updateOne({ _id: followerId }, {
             $pull: { following: targetId }
         });
 
@@ -319,7 +335,7 @@ router.get("/:id/followers", async (req, res) => {
         }
 
         const user = await User.findById(req.params.id)
-            .populate("followers", "name email role profileImage bio location");
+            .populate("followers", PUBLIC_RELATION_FIELDS);
 
         if (!user) {
 
@@ -365,7 +381,7 @@ router.get("/:id/following", async (req, res) => {
         }
 
         const user = await User.findById(req.params.id)
-            .populate("following", "name email role profileImage bio location");
+            .populate("following", PUBLIC_RELATION_FIELDS);
 
         if (!user) {
 

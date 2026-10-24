@@ -2,8 +2,49 @@ const express = require("express");
 const mongoose = require("mongoose");
 const Idea = require("../models/idea");
 const authMiddleware = require("../middleware/authMiddleware");
+const User = require("../models/user");
 
 const router = express.Router();
+
+// Public author fields only — never email, password or tokens.
+const AUTHOR_FIELDS = "name role";
+
+// Resolve authors explicitly so the API can say WHY an author is missing:
+//   authorStatus "available"       -> createdBy is the author object
+//   authorStatus "not_recorded"    -> the idea document has no createdBy (created before authentication existed)
+//   authorStatus "account_missing" -> createdBy points to a user account that no longer exists
+// createdBy keeps its existing contract: the author object, or null.
+async function withAuthors(ideaDocs) {
+    const ideas = ideaDocs.map(d => (d && typeof d.toObject === "function" ? d.toObject() : d));
+
+    const authorIds = [...new Set(
+        ideas
+            .map(i => i.createdBy)
+            .filter(id => id && mongoose.Types.ObjectId.isValid(id.toString()))
+            .map(id => id.toString())
+    )];
+
+    const authors = authorIds.length
+        ? await User.find({ _id: { $in: authorIds } }).select(AUTHOR_FIELDS).lean()
+        : [];
+
+    const authorMap = new Map(authors.map(a => [a._id.toString(), a]));
+
+    return ideas.map(idea => {
+        const rawId = idea.createdBy ? idea.createdBy.toString() : null;
+        const author = rawId ? authorMap.get(rawId) : null;
+
+        return {
+            ...idea,
+            createdBy: author || null,
+            authorStatus: author ? "available" : (rawId ? "account_missing" : "not_recorded")
+        };
+    });
+}
+
+async function withAuthor(ideaDoc) {
+    return (await withAuthors([ideaDoc]))[0];
+}
 
 
 // ==========================================
@@ -15,10 +56,10 @@ router.get("/", async (req, res) => {
     try {
 
         const ideas = await Idea.find()
-            .populate("createdBy", "name email role profileImage")
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
 
-        res.status(200).json(ideas);
+        res.status(200).json(await withAuthors(ideas));
 
     } catch (error) {
 
@@ -54,12 +95,7 @@ router.get("/:id", async (req, res) => {
         }
 
 
-        const idea = await Idea.findById(
-            req.params.id
-        ).populate(
-            "createdBy",
-            "name email role profileImage"
-        );
+        const idea = await Idea.findById(req.params.id).lean();
 
 
         if (!idea) {
@@ -71,7 +107,7 @@ router.get("/:id", async (req, res) => {
         }
 
 
-        res.status(200).json(idea);
+        res.status(200).json(await withAuthor(idea));
 
     } catch (error) {
 
@@ -150,10 +186,7 @@ router.post("/", authMiddleware, async (req, res) => {
         // Save idea
         const savedIdea = await newIdea.save();
 
-        const populatedIdea = await Idea.findById(savedIdea._id)
-            .populate("createdBy", "name email role profileImage");
-
-        res.status(201).json(populatedIdea);
+        res.status(201).json(await withAuthor(savedIdea));
 
     } catch (error) {
 
@@ -272,9 +305,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
         // createdBy is NEVER overwritten — preserving original ownership
         const savedIdea = await idea.save();
 
-        const populatedIdea = await Idea.findById(savedIdea._id).populate("createdBy", "name email");
-
-        res.status(200).json(populatedIdea);
+        res.status(200).json(await withAuthor(savedIdea));
 
     } catch (error) {
 

@@ -49,13 +49,21 @@ async function loadCommunity() {
 
         }
 
-        allUsers =
+        // Only genuine registered accounts are returned by the API.
+        // The logged-in user is excluded so they never appear as "another member".
+        const registeredUsers =
             await response.json();
+
+        const selfId = currentUser ? String(currentUser._id || currentUser.id) : null;
+
+        allUsers = registeredUsers.filter(
+            user => String(user._id || user.id) !== selfId
+        );
 
         updateSidebar();
 
         updateStatistics(
-            allUsers
+            registeredUsers
         );
 
         displayUsers(
@@ -194,11 +202,13 @@ function displayUsers(users) {
             <div class="empty-state">
 
                 <h3>
-                    No members found
+                    ${allUsers.length === 0 ? "No other members yet" : "No members found"}
                 </h3>
 
                 <p>
-                    Try another search or filter.
+                    ${allUsers.length === 0
+                        ? "Members appear here once other people sign up for an InnovNest account."
+                        : "Try another search or filter."}
                 </p>
 
             </div>

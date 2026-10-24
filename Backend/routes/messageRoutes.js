@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const Message = require("../models/message");
 const User = require("../models/user");
 const authMiddleware = require("../middleware/authMiddleware");
+const { notifyMessage } = require("../utils/notify");
 
 const router = express.Router();
 
@@ -24,8 +25,8 @@ router.get("/", authMiddleware, async (req, res) => {
                 { receiver: currentUserId }
             ]
         })
-            .populate("sender", "name email role profileImage")
-            .populate("receiver", "name email role profileImage")
+            .populate("sender", "name role")
+            .populate("receiver", "name role")
             .sort({ createdAt: 1 });
 
         res.json(messages);
@@ -86,8 +87,8 @@ router.get("/:user1/:user2", authMiddleware, async (req, res) => {
                 }
             ]
         })
-            .populate("sender", "name email role profileImage")
-            .populate("receiver", "name email role profileImage")
+            .populate("sender", "name role")
+            .populate("receiver", "name role")
             .sort({ createdAt: 1 });
 
         res.json(messages);
@@ -173,6 +174,9 @@ router.post("/", authMiddleware, async (req, res) => {
         const savedMessage =
             await newMessage.save();
 
+        // Notify the recipient of a genuine new direct message (never the sender)
+        await notifyMessage(receiver, sender, savedMessage);
+
 
         const populatedMessage =
             await Message.findById(
@@ -180,11 +184,11 @@ router.post("/", authMiddleware, async (req, res) => {
             )
                 .populate(
                     "sender",
-                    "name email role profileImage"
+                    "name role"
                 )
                 .populate(
                     "receiver",
-                    "name email role profileImage"
+                    "name role"
                 );
 
 
