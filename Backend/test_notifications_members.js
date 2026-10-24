@@ -209,6 +209,26 @@ async function run() {
 
         const badType = await api("PATCH", "/api/notifications/read-all", { token: A.token, body: { type: "like" } });
         record("Unsupported notification types are rejected", badType.status === 400);
+
+        // ---------- Profile roles ----------
+        const mentorEmail = `test-${stamp}-m@innovnest-test.local`;
+        const sm = await api("POST", "/api/auth/signup", { body: { name: "Test Mentor", email: mentorEmail, password: "password123", role: "Mentor" } });
+        if (sm.data?.user?.id) created.userIds.push(sm.data.user.id);
+        const badSignupRole = await api("POST", "/api/auth/signup", { body: { name: "X", email: `test-${stamp}-x@innovnest-test.local`, password: "password123", role: "Admin" } });
+        record("Signup can choose a role (Mentor); invalid roles like Admin are rejected",
+            sm.status === 201 && sm.data.user.role === "Mentor" && badSignupRole.status === 400);
+
+        const toStudent = await api("PUT", `/api/users/${A.id}`, { token: A.token, body: { role: "Student" } });
+        const toInvestor = await api("PUT", `/api/users/${A.id}`, { token: A.token, body: { role: "Investor" } });
+        const toAdmin = await api("PUT", `/api/users/${A.id}`, { token: A.token, body: { role: "Admin" } });
+        const toJunk = await api("PUT", `/api/users/${A.id}`, { token: A.token, body: { role: "Wizard" } });
+        const otherRole = await api("PUT", `/api/users/${B.id}`, { token: A.token, body: { role: "Mentor" } });
+        const listed = (await api("GET", "/api/users")).data.find(u => String(u._id) === A.id);
+        record("Users can change their own role (Student, Investor) and it shows in the member list",
+            toStudent.status === 200 && toStudent.data.role === "Student" &&
+            toInvestor.status === 200 && listed?.role === "Investor" && toStudent.data.password === undefined);
+        record("Admin self-assignment blocked, unknown roles rejected, other users' roles protected",
+            toAdmin.status === 403 && toJunk.status === 400 && otherRole.status === 403);
     } finally {
         // Remove ONLY data created by this test run
         const userIds = [...created.userIds, ...created.rawUserIds.map(String)];

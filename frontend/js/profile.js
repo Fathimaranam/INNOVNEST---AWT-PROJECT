@@ -634,6 +634,18 @@ function setupProfileModal() {
                 currentUser.location || "";
 
 
+            const roleSelect = document.getElementById("editRole");
+
+            if (roleSelect) {
+                const currentRole = currentUser.role || "Founder";
+                // Keep an older role (e.g. Developer) selectable if the account already has it
+                if (![...roleSelect.options].some(o => o.value === currentRole)) {
+                    roleSelect.add(new Option(currentRole, currentRole));
+                }
+                roleSelect.value = currentRole;
+            }
+
+
             modal.classList.remove(
                 "hidden"
             );
@@ -743,7 +755,10 @@ async function updateProfile(event) {
                     body: JSON.stringify({
                         name,
                         bio,
-                        location
+                        location,
+                        ...(document.getElementById("editRole")
+                            ? { role: document.getElementById("editRole").value }
+                            : {})
                     })
                 }
             );

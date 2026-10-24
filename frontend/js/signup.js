@@ -258,7 +258,10 @@ signupForm.addEventListener("submit", async (event) => {
             body: JSON.stringify({
                 name,
                 email,
-                password
+                password,
+                role: document.getElementById("role")
+                    ? document.getElementById("role").value
+                    : "Founder"
             })
         });
 

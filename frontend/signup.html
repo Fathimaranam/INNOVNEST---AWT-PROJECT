@@ -109,6 +109,17 @@
 						<span class="login-field-error" id="confirmPasswordError"></span>
 					</div>
 
+					<div class="login-field">
+						<label for="role">I am joining as a</label>
+						<select id="role" name="role" required>
+							<option value="Founder" selected>Founder</option>
+							<option value="Student">Student</option>
+							<option value="Investor">Investor</option>
+							<option value="Mentor">Mentor</option>
+						</select>
+						<span class="login-field-error" id="roleError"></span>
+					</div>
+
 					<p class="login-message" id="signupMessage" role="alert" aria-live="polite"></p>
 
 					<button class="login-submit" id="signupSubmit" type="submit">

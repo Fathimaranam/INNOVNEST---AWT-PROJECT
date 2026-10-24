@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 const authMiddleware = require("../middleware/authMiddleware");
+const { MEMBER_ROLES } = require("../utils/roles");
 
 const router = express.Router();
 console.log("✅ authRoutes.js loaded");
@@ -16,7 +17,8 @@ router.post("/signup", async (req, res) => {
         const {
             name,
             email,
-            password
+            password,
+            role
         } = req.body;
 
         // -------------------------------
@@ -38,6 +40,13 @@ router.post("/signup", async (req, res) => {
         if (!password) {
             return res.status(400).json({
                 message: "Password is required"
+            });
+        }
+
+        // Optional role chosen at signup; defaults to Founder
+        if (role !== undefined && role !== "" && !MEMBER_ROLES.includes(role)) {
+            return res.status(400).json({
+                message: `Role must be one of: ${MEMBER_ROLES.join(", ")}`
             });
         }
 
@@ -96,7 +105,7 @@ router.post("/signup", async (req, res) => {
             name: name.trim(),
             email: normalizedEmail,
             password: hashedPassword,
-            role: "Founder"
+            role: role || "Founder"
         });
 
         const savedUser =

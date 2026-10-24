@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const User = require("../models/user");
 const authMiddleware = require("../middleware/authMiddleware");
 const { notifyFollow } = require("../utils/notify");
+const { MEMBER_ROLES, isSelectableRole } = require("../utils/roles");
 
 // Fields that are safe to show publicly (never email, password or tokens)
 const PUBLIC_USER_FIELDS = "name role bio location skills followers following connections createdAt";
@@ -487,21 +488,22 @@ router.put("/:id", authMiddleware, async (req, res) => {
 
                 updateData.role = role;
 
+            } else if (typeof role === "string" && role.toLowerCase() === "admin") {
+
+                return res.status(403).json({
+                    message: "Access denied. You cannot assign yourself an administrative role."
+                });
+
+            } else if (isSelectableRole(role)) {
+
+                updateData.role = role;
+
             } else {
 
-                const allowedRoles = ["Founder", "Developer", "Designer", "Investor", "Member"];
-
-                if (allowedRoles.includes(role)) {
-
-                    updateData.role = role;
-
-                } else if (role.toLowerCase() === "admin") {
-
-                    return res.status(403).json({
-                        message: "Access denied. You cannot assign yourself an administrative role."
-                    });
-
-                }
+                // Previously an unknown role was silently ignored; now the user is told why
+                return res.status(400).json({
+                    message: `Role must be one of: ${MEMBER_ROLES.join(", ")}`
+                });
 
             }
 
@@ -511,15 +513,15 @@ router.put("/:id", authMiddleware, async (req, res) => {
         delete updateData.password;
         delete updateData.email;
 
-        const updatedUser =
-            await User.findByIdAndUpdate(
-                req.params.id,
-                updateData,
-                {
-                    new: true,
-                    runValidators: true
-                }
-            ).select("-password");
+        const updateResult = await User.updateOne(
+            { _id: req.params.id },
+            { $set: updateData },
+            { runValidators: true }
+        );
+
+        const updatedUser = updateResult.matchedCount
+            ? await User.findById(req.params.id).select("-password")
+            : null;
 
         if (!updatedUser) {
 
