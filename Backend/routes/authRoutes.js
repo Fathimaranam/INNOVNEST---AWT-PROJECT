@@ -2,6 +2,8 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
+const authMiddleware = require("../middleware/authMiddleware");
+const { MEMBER_ROLES } = require("../utils/roles");
 
 const router = express.Router();
 console.log("✅ authRoutes.js loaded");
@@ -15,7 +17,8 @@ router.post("/signup", async (req, res) => {
         const {
             name,
             email,
-            password
+            password,
+            role
         } = req.body;
 
         // -------------------------------
@@ -37,6 +40,13 @@ router.post("/signup", async (req, res) => {
         if (!password) {
             return res.status(400).json({
                 message: "Password is required"
+            });
+        }
+
+        // Optional role chosen at signup; defaults to Founder
+        if (role !== undefined && role !== "" && !MEMBER_ROLES.includes(role)) {
+            return res.status(400).json({
+                message: `Role must be one of: ${MEMBER_ROLES.join(", ")}`
             });
         }
 
@@ -95,7 +105,7 @@ router.post("/signup", async (req, res) => {
             name: name.trim(),
             email: normalizedEmail,
             password: hashedPassword,
-            role: "Founder"
+            role: role || "Founder"
         });
 
         const savedUser =
@@ -256,6 +266,36 @@ router.post("/login", async (req, res) => {
         });
     }
 });
+// ===============================
+// GET CURRENT USER
+// GET /api/auth/me
+// ===============================
+router.get("/me", authMiddleware, async (req, res) => {
+    try {
+        res.status(200).json({
+            user: {
+                id: req.user._id,
+                name: req.user.name,
+                email: req.user.email,
+                role: req.user.role,
+                bio: req.user.bio || "",
+                location: req.user.location || "",
+                skills: req.user.skills || [],
+                followers: req.user.followers || 0,
+                following: req.user.following || 0,
+                connections: req.user.connections || 0,
+                createdAt: req.user.createdAt,
+                updatedAt: req.user.updatedAt
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching current user:", error.message);
+        res.status(500).json({
+            message: "Failed to fetch user profile"
+        });
+    }
+});
+
 router.get("/test", (req, res) => {
     res.json({
         message: "Auth route is working!"

@@ -1,127 +1,55 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const User = require("../models/user");
+const authMiddleware = require("../middleware/authMiddleware");
+const { notifyFollow } = require("../utils/notify");
+const { MEMBER_ROLES, isSelectableRole } = require("../utils/roles");
+
+// Fields that are safe to show publicly (never email, password or tokens)
+const PUBLIC_USER_FIELDS = "name role bio location skills followers following connections createdAt";
+const PUBLIC_RELATION_FIELDS = "name role bio location";
+
+// A genuine registered member is an account created through signup (it has a password hash).
+// Development seed accounts inserted without credentials cannot log in and are not listed as members.
+const REGISTERED_MEMBER_FILTER = { password: { $type: "string", $ne: "" } };
 
 const router = express.Router();
 
 
 // ==========================================
-// CREATE USER
+// CREATE USER (REDIRECT TO SIGNUP)
 // ==========================================
 
 router.post("/", async (req, res) => {
 
-    try {
-
-        const {
-            name,
-            email,
-            role,
-            bio,
-            location,
-            skills
-        } = req.body;
-
-
-        // Validate name
-        if (!name || !name.trim()) {
-
-            return res.status(400).json({
-                message: "Name is required"
-            });
-
-        }
-
-
-        // Validate email
-        if (!email || !email.trim()) {
-
-            return res.status(400).json({
-                message: "Email is required"
-            });
-
-        }
-
-
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-        if (!emailRegex.test(email)) {
-
-            return res.status(400).json({
-                message: "Please provide a valid email address"
-            });
-
-        }
-
-
-        // Check duplicate email
-        const existingUser = await User.findOne({
-            email: email.toLowerCase()
-        });
-
-        if (existingUser) {
-
-            return res.status(400).json({
-                message: "Email already exists"
-            });
-
-        }
-
-
-        // Create user
-        const newUser = new User({
-
-            name: name.trim(),
-
-            email: email.toLowerCase().trim(),
-
-            role,
-
-            bio,
-
-            location,
-
-            skills
-
-        });
-
-
-        // Save user
-        const savedUser = await newUser.save();
-
-
-        // Return created user
-        res.status(201).json(savedUser);
-
-    } catch (error) {
-
-        console.error(
-            "Error creating user:",
-            error.message
-        );
-
-        res.status(500).json({
-            message: "Failed to create user"
-        });
-
-    }
+    return res.status(400).json({
+        message: "Direct user creation is deprecated. Please use POST /api/auth/signup to register securely."
+    });
 
 });
 
 
 // ==========================================
-// GET ALL USERS
+// GET ALL USERS (PUBLIC DIRECTORY)
 // ==========================================
 
 router.get("/", async (req, res) => {
 
     try {
 
-        const users = await User.find()
+        // Explicitly exclude password hash and sensitive auth fields
+        const users = await User.find(REGISTERED_MEMBER_FILTER)
+            .select(PUBLIC_USER_FIELDS)
             .sort({ createdAt: -1 });
 
-        res.status(200).json(users);
+        const formattedUsers = users.map(u => {
+            const obj = u.toObject();
+            obj.followersCount = Array.isArray(u.followers) ? u.followers.length : 0;
+            obj.followingCount = Array.isArray(u.following) ? u.following.length : 0;
+            return obj;
+        });
+
+        res.status(200).json(formattedUsers);
 
     } catch (error) {
 
@@ -146,15 +74,20 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
 
     try {
-        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({
-        message: "Invalid user ID"
-    });
-}
-        const user = await User.findById(
-            req.params.id
-        );
 
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+
+            return res.status(400).json({
+                message: "Invalid user ID"
+            });
+
+        }
+
+        // Explicitly exclude password hash, populate followers & following
+        const user = await User.findById(req.params.id)
+            .select(PUBLIC_USER_FIELDS)
+            .populate("followers", PUBLIC_RELATION_FIELDS)
+            .populate("following", PUBLIC_RELATION_FIELDS);
 
         if (!user) {
 
@@ -164,8 +97,11 @@ router.get("/:id", async (req, res) => {
 
         }
 
+        const userObj = user.toObject();
+        userObj.followersCount = Array.isArray(user.followers) ? user.followers.length : 0;
+        userObj.followingCount = Array.isArray(user.following) ? user.following.length : 0;
 
-        res.status(200).json(user);
+        res.status(200).json(userObj);
 
     } catch (error) {
 
@@ -184,17 +120,324 @@ router.get("/:id", async (req, res) => {
 
 
 // ==========================================
-// UPDATE USER
+// FOLLOW USER
+// POST /api/users/:id/follow
 // ==========================================
 
-router.put("/:id", async (req, res) => {
+router.post("/:id/follow", authMiddleware, async (req, res) => {
 
     try {
+
+        const targetId = req.params.id;
+        const followerId = req.user._id;
+
+        if (!mongoose.Types.ObjectId.isValid(targetId)) {
+
+            return res.status(400).json({
+                message: "Invalid target user ID"
+            });
+
+        }
+
+        // Prevent users from following themselves
+        if (followerId.toString() === targetId.toString()) {
+
+            return res.status(400).json({
+                message: "You cannot follow yourself"
+            });
+
+        }
+
+        const targetUser = await User.findById(targetId);
+
+        if (!targetUser) {
+
+            return res.status(404).json({
+                message: "User to follow not found"
+            });
+
+        }
+
+        // Prevent duplicate follow relationships
+        const alreadyFollowing = Array.isArray(targetUser.followers) &&
+            targetUser.followers.some(id => id.toString() === followerId.toString());
+
+        if (alreadyFollowing) {
+
+            return res.status(400).json({
+                message: "You are already following this user"
+            });
+
+        }
+
+        // Persist the relationship in MongoDB:
+        // Target's followers list includes followerId
+        // Follower's following list includes targetId
+        // Only counts as a new follow if the follower was not already in the list
+        // (guards against double-clicks / concurrent requests creating duplicate notifications)
+        const followResult = await User.updateOne(
+            { _id: targetId, followers: { $ne: followerId } },
+            { $addToSet: { followers: followerId } }
+        );
+
+        await User.updateOne({ _id: followerId }, {
+            $addToSet: { following: targetId }
+        });
+
+        if (followResult.modifiedCount === 1) {
+            await notifyFollow(targetId, followerId);
+        }
+
+        const updatedTarget = await User.findById(targetId);
+        const updatedFollower = await User.findById(followerId);
+
+        const targetFollowersCount = Array.isArray(updatedTarget.followers) ? updatedTarget.followers.length : 0;
+        const targetFollowingCount = Array.isArray(updatedTarget.following) ? updatedTarget.following.length : 0;
+
+        res.status(200).json({
+            message: `You are now following ${targetUser.name}`,
+            isFollowing: true,
+            followersCount: targetFollowersCount,
+            followingCount: targetFollowingCount,
+            targetUser: {
+                id: updatedTarget._id,
+                name: updatedTarget.name,
+                followersCount: targetFollowersCount,
+                followingCount: targetFollowingCount
+            },
+            currentUser: {
+                id: updatedFollower._id,
+                followersCount: Array.isArray(updatedFollower.followers) ? updatedFollower.followers.length : 0,
+                followingCount: Array.isArray(updatedFollower.following) ? updatedFollower.following.length : 0
+            }
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Error following user:",
+            error.message
+        );
+
+        res.status(500).json({
+            message: "Failed to follow user"
+        });
+
+    }
+
+});
+
+
+// ==========================================
+// UNFOLLOW USER
+// POST /api/users/:id/unfollow & DELETE /api/users/:id/follow
+// ==========================================
+
+const handleUnfollow = async (req, res) => {
+
+    try {
+
+        const targetId = req.params.id;
+        const followerId = req.user._id;
+
+        if (!mongoose.Types.ObjectId.isValid(targetId)) {
+
+            return res.status(400).json({
+                message: "Invalid target user ID"
+            });
+
+        }
+
+        if (followerId.toString() === targetId.toString()) {
+
+            return res.status(400).json({
+                message: "You cannot unfollow yourself"
+            });
+
+        }
+
+        const targetUser = await User.findById(targetId);
+
+        if (!targetUser) {
+
+            return res.status(404).json({
+                message: "User to unfollow not found"
+            });
+
+        }
+
+        // Remove relationship consistently from both views
+        await User.updateOne({ _id: targetId }, {
+            $pull: { followers: followerId }
+        });
+
+        await User.updateOne({ _id: followerId }, {
+            $pull: { following: targetId }
+        });
+
+        const updatedTarget = await User.findById(targetId);
+        const updatedFollower = await User.findById(followerId);
+
+        const targetFollowersCount = Array.isArray(updatedTarget.followers) ? updatedTarget.followers.length : 0;
+        const targetFollowingCount = Array.isArray(updatedTarget.following) ? updatedTarget.following.length : 0;
+
+        res.status(200).json({
+            message: `You have unfollowed ${targetUser.name}`,
+            isFollowing: false,
+            followersCount: targetFollowersCount,
+            followingCount: targetFollowingCount,
+            targetUser: {
+                id: updatedTarget._id,
+                name: updatedTarget.name,
+                followersCount: targetFollowersCount,
+                followingCount: targetFollowingCount
+            },
+            currentUser: {
+                id: updatedFollower._id,
+                followersCount: Array.isArray(updatedFollower.followers) ? updatedFollower.followers.length : 0,
+                followingCount: Array.isArray(updatedFollower.following) ? updatedFollower.following.length : 0
+            }
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Error unfollowing user:",
+            error.message
+        );
+
+        res.status(500).json({
+            message: "Failed to unfollow user"
+        });
+
+    }
+
+};
+
+router.post("/:id/unfollow", authMiddleware, handleUnfollow);
+router.delete("/:id/follow", authMiddleware, handleUnfollow);
+
+
+// ==========================================
+// GET USER'S FOLLOWERS LIST
+// GET /api/users/:id/followers
+// ==========================================
+
+router.get("/:id/followers", async (req, res) => {
+
+    try {
+
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({
-        message: "Invalid user ID"
-    });
-}
+
+            return res.status(400).json({
+                message: "Invalid user ID"
+            });
+
+        }
+
+        const user = await User.findById(req.params.id)
+            .populate("followers", PUBLIC_RELATION_FIELDS);
+
+        if (!user) {
+
+            return res.status(404).json({
+                message: "User not found"
+            });
+
+        }
+
+        res.status(200).json(user.followers || []);
+
+    } catch (error) {
+
+        console.error(
+            "Error fetching followers list:",
+            error.message
+        );
+
+        res.status(500).json({
+            message: "Failed to fetch followers"
+        });
+
+    }
+
+});
+
+
+// ==========================================
+// GET USER'S FOLLOWING LIST
+// GET /api/users/:id/following
+// ==========================================
+
+router.get("/:id/following", async (req, res) => {
+
+    try {
+
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+
+            return res.status(400).json({
+                message: "Invalid user ID"
+            });
+
+        }
+
+        const user = await User.findById(req.params.id)
+            .populate("following", PUBLIC_RELATION_FIELDS);
+
+        if (!user) {
+
+            return res.status(404).json({
+                message: "User not found"
+            });
+
+        }
+
+        res.status(200).json(user.following || []);
+
+    } catch (error) {
+
+        console.error(
+            "Error fetching following list:",
+            error.message
+        );
+
+        res.status(500).json({
+            message: "Failed to fetch following users"
+        });
+
+    }
+
+});
+
+
+// ==========================================
+// UPDATE USER (AUTHENTICATED - OWNER OR ADMIN)
+// ==========================================
+
+router.put("/:id", authMiddleware, async (req, res) => {
+
+    try {
+
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+
+            return res.status(400).json({
+                message: "Invalid user ID"
+            });
+
+        }
+
+        const isAdmin = req.user && req.user.role && req.user.role.toLowerCase() === "admin";
+        const isSelf = req.user._id.toString() === req.params.id;
+
+        // Enforce account ownership: only self or authorized admin can update
+        if (!isSelf && !isAdmin) {
+
+            return res.status(403).json({
+                message: "Access denied. You can only update your own account."
+            });
+
+        }
+
         const {
             name,
             bio,
@@ -203,55 +446,82 @@ router.put("/:id", async (req, res) => {
             skills
         } = req.body;
 
+        const updateData = {};
 
         // Validate name if provided
-        if (name !== undefined && !name.trim()) {
+        if (name !== undefined) {
 
-            return res.status(400).json({
-                message: "Name cannot be empty"
-            });
+            if (!name.trim()) {
+
+                return res.status(400).json({
+                    message: "Name cannot be empty"
+                });
+
+            }
+
+            updateData.name = name.trim();
 
         }
 
+        if (bio !== undefined) updateData.bio = bio;
+        if (location !== undefined) updateData.location = location;
 
         // Validate skills if provided
-        if (skills !== undefined && !Array.isArray(skills)) {
+        if (skills !== undefined) {
 
-            return res.status(400).json({
-                message: "Skills must be an array"
-            });
+            if (!Array.isArray(skills)) {
+
+                return res.status(400).json({
+                    message: "Skills must be an array"
+                });
+
+            }
+
+            updateData.skills = skills;
 
         }
 
+        // Prevent non-admin users from escalating their privileges to Admin
+        if (role !== undefined) {
 
-        const updatedUser =
-            await User.findByIdAndUpdate(
+            if (isAdmin) {
 
-                req.params.id,
+                updateData.role = role;
 
-                {
-                    name:
-                        name !== undefined
-                            ? name.trim()
-                            : undefined,
+            } else if (typeof role === "string" && role.toLowerCase() === "admin") {
 
-                    bio,
+                return res.status(403).json({
+                    message: "Access denied. You cannot assign yourself an administrative role."
+                });
 
-                    location,
+            } else if (isSelectableRole(role)) {
 
-                    role,
+                updateData.role = role;
 
-                    skills
+            } else {
 
-                },
+                // Previously an unknown role was silently ignored; now the user is told why
+                return res.status(400).json({
+                    message: `Role must be one of: ${MEMBER_ROLES.join(", ")}`
+                });
 
-                {
-                    new: true,
-                    runValidators: true
-                }
+            }
 
-            );
+        }
 
+        // Strictly protect password and email from this general profile update endpoint
+        delete updateData.password;
+        delete updateData.email;
+
+        const updateResult = await User.updateOne(
+            { _id: req.params.id },
+            { $set: updateData },
+            { runValidators: true }
+        );
+
+        const updatedUser = updateResult.matchedCount
+            ? await User.findById(req.params.id).select("-password")
+            : null;
 
         if (!updatedUser) {
 
@@ -260,7 +530,6 @@ router.put("/:id", async (req, res) => {
             });
 
         }
-
 
         res.status(200).json(updatedUser);
 
@@ -281,22 +550,37 @@ router.put("/:id", async (req, res) => {
 
 
 // ==========================================
-// DELETE USER
+// DELETE USER (AUTHENTICATED - OWNER OR ADMIN)
 // ==========================================
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", authMiddleware, async (req, res) => {
 
     try {
+
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({
-        message: "Invalid user ID"
-    });
-}
+
+            return res.status(400).json({
+                message: "Invalid user ID"
+            });
+
+        }
+
+        const isAdmin = req.user && req.user.role && req.user.role.toLowerCase() === "admin";
+        const isSelf = req.user._id.toString() === req.params.id;
+
+        // Enforce account ownership: only self or authorized admin can delete
+        if (!isSelf && !isAdmin) {
+
+            return res.status(403).json({
+                message: "Access denied. You can only delete your own account."
+            });
+
+        }
+
         const deletedUser =
             await User.findByIdAndDelete(
                 req.params.id
             );
-
 
         if (!deletedUser) {
 
@@ -305,7 +589,6 @@ router.delete("/:id", async (req, res) => {
             });
 
         }
-
 
         res.status(200).json({
             message: "User deleted successfully"

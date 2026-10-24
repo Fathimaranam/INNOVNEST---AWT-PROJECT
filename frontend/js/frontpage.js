@@ -8,6 +8,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     console.log("Frontpage loaded");
 
+    if (typeof fetchCurrentUser === "function") {
+        fetchCurrentUser().then(user => {
+            if (typeof updateSidebarUser === "function") {
+                updateSidebarUser(user);
+            }
+            // Show the real unread notification count for logged-in users
+            if (user && window.InnovNestAuth && typeof window.InnovNestAuth.refreshNotificationBadge === "function") {
+                window.InnovNestAuth.refreshNotificationBadge();
+            }
+        });
+    }
+
     setupNavigation();
 
     setupButtons();

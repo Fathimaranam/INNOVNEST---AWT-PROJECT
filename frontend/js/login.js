@@ -2,6 +2,14 @@
 // LOGIN PAGE
 // ===============================
 
+const AUTH_API = "http://localhost:5000/api/auth";
+
+document.addEventListener("DOMContentLoaded", () => {
+    if (typeof redirectIfAuthenticated === "function") {
+        redirectIfAuthenticated("frontpage.html");
+    }
+});
+
 const loginForm =
     document.getElementById("loginForm");
 
@@ -71,7 +79,7 @@ passwordToggle.addEventListener("click", () => {
 // LOGIN FORM
 // ===============================
 
-loginForm.addEventListener("submit", (event) => {
+loginForm.addEventListener("submit", async (event) => {
 
     event.preventDefault();
 
@@ -174,7 +182,7 @@ loginForm.addEventListener("submit", (event) => {
 
 
     // ===============================
-    // TEMPORARY SUCCESS
+    // CONNECT TO BACKEND API
     // ===============================
 
     loginSubmit.disabled = true;
@@ -187,26 +195,41 @@ loginForm.addEventListener("submit", (event) => {
     loginSubmitLabel.textContent =
         "Logging in...";
 
+    try {
+        const response = await fetch(`${AUTH_API}/login`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                email,
+                password
+            })
+        });
 
-    // Backend connection will be added next.
+        const data = await response.json();
 
-    setTimeout(() => {
+        if (!response.ok) {
+            throw new Error(data.message || "Invalid email or password");
+        }
+
+        // Store JWT token and user info
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+
+        loginMessage.classList.add("is-success");
+        loginMessage.textContent = "Login successful! Redirecting...";
+
+        setTimeout(() => {
+            window.location.href = "frontpage.html";
+        }, 1000);
+
+    } catch (error) {
+        loginMessage.classList.remove("is-success");
+        loginMessage.textContent = error.message;
 
         loginSubmit.disabled = false;
-
-        loginSubmit.removeAttribute(
-            "aria-busy"
-        );
-
-        loginSubmitLabel.textContent =
-            "Log in";
-
-        loginMessage.classList.add(
-            "is-success"
-        );
-
-        loginMessage.textContent =
-            "Login form is working successfully.";
-
-    }, 1000);
+        loginSubmit.removeAttribute("aria-busy");
+        loginSubmitLabel.textContent = "Log in";
+    }
 });

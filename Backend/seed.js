@@ -10,6 +10,26 @@ dotenv.config({
     path: path.join(__dirname, ".env")
 });
 
+// ==========================================
+// DEVELOPMENT-ONLY SEED SCRIPT
+// ------------------------------------------
+// WARNING: this script DELETES every user, idea and message in the
+// connected database before inserting sample data. It is never run by
+// server.js. It refuses to run unless explicitly confirmed:
+//
+//     node seed.js --confirm-wipe-dev-database
+//
+// Never run it against a database holding real registered accounts.
+// Note: sample users here have no password, so they cannot log in and
+// are not listed as members by GET /api/users.
+// ==========================================
+
+if (!process.argv.includes("--confirm-wipe-dev-database")) {
+    console.error("Refusing to seed: this would delete all users, ideas and messages.");
+    console.error("Re-run with --confirm-wipe-dev-database on a development database only.");
+    process.exit(1);
+}
+
 async function seedDatabase() {
 
     try {

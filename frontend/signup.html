@@ -9,6 +9,7 @@
 	<title>Create account | InnovNest</title>
 
 	<link rel="stylesheet" href="css/login.css">
+	<script src="js/session.js"></script>
 	<script src="js/signup.js" defer></script>
 </head>
 
@@ -106,6 +107,17 @@
 							</button>
 						</div>
 						<span class="login-field-error" id="confirmPasswordError"></span>
+					</div>
+
+					<div class="login-field">
+						<label for="role">I am joining as a</label>
+						<select id="role" name="role" required>
+							<option value="Founder" selected>Founder</option>
+							<option value="Student">Student</option>
+							<option value="Investor">Investor</option>
+							<option value="Mentor">Mentor</option>
+						</select>
+						<span class="login-field-error" id="roleError"></span>
 					</div>
 
 					<p class="login-message" id="signupMessage" role="alert" aria-live="polite"></p>

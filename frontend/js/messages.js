@@ -4,12 +4,6 @@ const MESSAGES_API =
 const USERS_API =
     "http://localhost:5000/api/users";
 
-
-// Sarah is our current demo user
-const CURRENT_USER_EMAIL =
-    "sarah@innovnest.com";
-
-
 let currentUser = null;
 
 let allMessages = [];
@@ -24,11 +18,17 @@ let selectedUser = null;
 
 document.addEventListener(
     "DOMContentLoaded",
-    () => {
+    async () => {
 
         console.log(
             "Messages page loaded"
         );
+
+        if (typeof requireAuth === "function") {
+            currentUser = await requireAuth();
+            if (!currentUser) return;
+            currentUser._id = currentUser._id || currentUser.id;
+        }
 
         setupNavigation();
 
@@ -68,28 +68,33 @@ async function loadMessages() {
             await usersResponse.json();
 
 
-        currentUser =
-            allUsers.find(
-                user =>
-                    user.email ===
-                    CURRENT_USER_EMAIL
-            );
+        if (!currentUser && typeof fetchCurrentUser === "function") {
+            currentUser = await fetchCurrentUser();
+        }
 
 
         if (!currentUser) {
 
             throw new Error(
-                "Current demo user not found"
+                "Current user session not found"
             );
 
         }
+
+        currentUser._id = currentUser._id || currentUser.id;
 
 
         updateSidebarUser();
 
 
+        const token = typeof getToken === "function" ? getToken() : localStorage.getItem("token");
+
         const messagesResponse =
-            await fetch(MESSAGES_API);
+            await fetch(MESSAGES_API, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
 
 
         if (!messagesResponse.ok) {
@@ -109,6 +114,47 @@ async function loadMessages() {
 
 
         displayConversations();
+
+
+        // Automatically select conversation if target user is in URL query parameters (e.g. from Message Author)
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetUserId = urlParams.get("user") || urlParams.get("userId");
+
+        if (targetUserId) {
+
+            let targetUser = allUsers.find(
+                u => (u._id || u.id) === targetUserId
+            );
+
+            if (!targetUser) {
+
+                try {
+
+                    const singleUserRes = await fetch(`${USERS_API}/${targetUserId}`);
+
+                    if (singleUserRes.ok) {
+
+                        targetUser = await singleUserRes.json();
+
+                    }
+
+                } catch (e) {
+
+                    console.error("Error fetching target user for chat:", e);
+
+                }
+
+            }
+
+            if (targetUser) {
+
+                targetUser._id = targetUser._id || targetUser.id;
+
+                selectConversation(targetUser);
+
+            }
+
+        }
 
 
     } catch (error) {
@@ -148,6 +194,15 @@ async function loadMessages() {
 ================================ */
 
 function updateSidebarUser() {
+
+    if (!currentUser) {
+        return;
+    }
+
+    if (typeof window.InnovNestAuth?.updateSidebarUser === "function") {
+        window.InnovNestAuth.updateSidebarUser(currentUser);
+        return;
+    }
 
     const firstLetter =
         currentUser.name
@@ -424,6 +479,8 @@ function selectConversation(user) {
 
     selectedUser = user;
 
+    markConversationNotificationsRead(user);
+
 
     document.getElementById(
         "chatEmpty"
@@ -542,6 +599,17 @@ function displayChatMessages() {
 
             }
         );
+
+
+    if (conversationMessages.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="margin: 40px auto; max-width: 380px; padding: 25px; text-align: center;">
+                <h3>No messages yet</h3>
+                <p>Start a new conversation with <strong>${escapeHTML(selectedUser.name)}</strong> by sending a message below.</p>
+            </div>
+        `;
+        return;
+    }
 
 
     conversationMessages.forEach(
@@ -668,6 +736,8 @@ function setupMessageForm() {
 
             try {
 
+                const token = typeof getToken === "function" ? getToken() : localStorage.getItem("token");
+
                 const response =
                     await fetch(
                         MESSAGES_API,
@@ -677,14 +747,13 @@ function setupMessageForm() {
 
                             headers: {
                                 "Content-Type":
-                                    "application/json"
+                                    "application/json",
+                                "Authorization":
+                                    `Bearer ${token}`
                             },
 
                             body:
                                 JSON.stringify({
-
-                                    sender:
-                                        currentUser._id,
 
                                     receiver:
                                         selectedUser._id,
@@ -912,5 +981,46 @@ function escapeHTML(value) {
         value ?? "";
 
     return div.innerHTML;
+
+}
+
+
+/* ===============================
+   NOTIFICATIONS: opening a conversation
+   marks that sender's message notifications as read
+================================ */
+
+async function markConversationNotificationsRead(user) {
+
+    const userId = user && (user._id || user.id);
+    const token = typeof getToken === "function" ? getToken() : localStorage.getItem("token");
+
+    if (!userId || !token) {
+        return;
+    }
+
+    try {
+
+        const res = await fetch("http://localhost:5000/api/notifications/read-all", {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ type: "message", actor: String(userId) })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            if (typeof setNotificationBadge === "function") {
+                setNotificationBadge(data.unreadCount);
+            }
+        }
+
+    } catch (error) {
+
+        console.warn("Could not update message notifications:", error.message);
+
+    }
 
 }

@@ -1,20 +1,32 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const Message = require("../models/message");
+const User = require("../models/user");
+const authMiddleware = require("../middleware/authMiddleware");
+const { notifyMessage } = require("../utils/notify");
 
 const router = express.Router();
 
 
 // ==========================================
-// GET ALL MESSAGES
+// GET CONVERSATIONS / MESSAGES FOR AUTHENTICATED USER
 // ==========================================
 
-router.get("/", async (req, res) => {
+router.get("/", authMiddleware, async (req, res) => {
 
     try {
 
-        const messages = await Message.find()
-            .populate("sender", "name email role profileImage")
-            .populate("receiver", "name email role profileImage")
+        const currentUserId = req.user._id;
+
+        // Only return messages where the authenticated user is sender or receiver
+        const messages = await Message.find({
+            $or: [
+                { sender: currentUserId },
+                { receiver: currentUserId }
+            ]
+        })
+            .populate("sender", "name role")
+            .populate("receiver", "name role")
             .sort({ createdAt: 1 });
 
         res.json(messages);
@@ -36,14 +48,32 @@ router.get("/", async (req, res) => {
 
 
 // ==========================================
-// GET MESSAGES BETWEEN TWO USERS
+// GET MESSAGES BETWEEN TWO USERS (PARTICIPANTS ONLY)
 // ==========================================
 
-router.get("/:user1/:user2", async (req, res) => {
+router.get("/:user1/:user2", authMiddleware, async (req, res) => {
 
     try {
 
         const { user1, user2 } = req.params;
+
+        // Validate MongoDB ObjectIds
+        if (!mongoose.Types.ObjectId.isValid(user1) || !mongoose.Types.ObjectId.isValid(user2)) {
+            return res.status(400).json({
+                message: "Invalid user ID(s)"
+            });
+        }
+
+        const currentUserId = req.user._id.toString();
+        const isParticipant = currentUserId === user1 || currentUserId === user2;
+        const isAdmin = req.user.role && (req.user.role.toLowerCase() === "admin");
+
+        // Enforce conversation membership
+        if (!isParticipant && !isAdmin) {
+            return res.status(403).json({
+                message: "Access denied. You can only view your own conversations."
+            });
+        }
 
         const messages = await Message.find({
             $or: [
@@ -57,8 +87,8 @@ router.get("/:user1/:user2", async (req, res) => {
                 }
             ]
         })
-            .populate("sender", "name email role profileImage")
-            .populate("receiver", "name email role profileImage")
+            .populate("sender", "name role")
+            .populate("receiver", "name role")
             .sort({ createdAt: 1 });
 
         res.json(messages);
@@ -83,22 +113,52 @@ router.get("/:user1/:user2", async (req, res) => {
 // SEND NEW MESSAGE
 // ==========================================
 
-router.post("/", async (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
 
     try {
 
         const {
-            sender,
             receiver,
             message
         } = req.body;
 
+        // Sender is derived strictly from the authenticated user
+        const sender = req.user._id;
 
-        if (!sender || !receiver || !message) {
+        if (!receiver || !message || !message.trim()) {
 
             return res.status(400).json({
                 message:
-                    "Sender, receiver and message are required"
+                    "Receiver and message are required"
+            });
+
+        }
+
+        // Validate receiver MongoDB ObjectId
+        if (!mongoose.Types.ObjectId.isValid(receiver)) {
+
+            return res.status(400).json({
+                message: "Invalid receiver ID"
+            });
+
+        }
+
+        // Prevent messaging oneself
+        if (sender.toString() === receiver.toString()) {
+
+            return res.status(400).json({
+                message: "Cannot send message to yourself"
+            });
+
+        }
+
+        // Verify receiver user actually exists
+        const recipientUser = await User.findById(receiver);
+
+        if (!recipientUser) {
+
+            return res.status(404).json({
+                message: "Receiver user not found"
             });
 
         }
@@ -107,12 +167,15 @@ router.post("/", async (req, res) => {
         const newMessage = new Message({
             sender,
             receiver,
-            message
+            message: message.trim()
         });
 
 
         const savedMessage =
             await newMessage.save();
+
+        // Notify the recipient of a genuine new direct message (never the sender)
+        await notifyMessage(receiver, sender, savedMessage);
 
 
         const populatedMessage =
@@ -121,11 +184,11 @@ router.post("/", async (req, res) => {
             )
                 .populate(
                     "sender",
-                    "name email role profileImage"
+                    "name role"
                 )
                 .populate(
                     "receiver",
-                    "name email role profileImage"
+                    "name role"
                 );
 
 

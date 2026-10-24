@@ -35,10 +35,19 @@ const ideaSchema = new mongoose.Schema(
       default: "active"
     },
 
+    // Cached like count, kept in sync with likedBy.length whenever someone likes/unlikes.
     likes: {
       type: Number,
       default: 0
     },
+
+    // Members who liked this idea (one like per member)
+    likedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+      }
+    ],
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

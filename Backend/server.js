@@ -25,50 +25,56 @@ const ideaRoutes = require("./routes/ideaRoutes");
 const userRoutes = require("./routes/userRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const authRoutes = require("./routes/authRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 // Use routes
 app.use("/api/ideas", ideaRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/notifications", notificationRoutes);
 
-console.log("Starting AWT backend...");
-console.log(
-    "MongoDB URI loaded:",
-    process.env.MONGODB_URI ? "YES" : "NO"
-);
+// Connect and listen only when started directly (`node server.js`).
+// Tests can require("./server") to get the app without binding port 5000.
+// No data is seeded on startup.
+function startServer() {
 
-if (!process.env.MONGODB_URI) {
-    console.error("❌ MONGODB_URI is missing from Backend/.env");
-    process.exit(1);
-}
+    console.log("Starting AWT backend...");
+    console.log(
+        "MongoDB URI loaded:",
+        process.env.MONGODB_URI ? "YES" : "NO"
+    );
 
-// MongoDB connection
-mongoose
-    .connect(process.env.MONGODB_URI)
-    .then(() => {
+    if (!process.env.MONGODB_URI) {
+        console.error("❌ MONGODB_URI is missing from Backend/.env");
+        process.exit(1);
+    }
 
-        console.log("✅ MongoDB connected successfully!");
+    const PORT = process.env.PORT || 5000;
 
-        // Print database name AFTER connection
-        console.log(
-            "MongoDB database:",
-            mongoose.connection.name
-        );
+    mongoose
+        .connect(process.env.MONGODB_URI)
+        .then(() => {
 
-        // Start server only after MongoDB connects
-        app.listen(5000, () => {
-            console.log(
-                "🚀 Server running on http://localhost:5000"
-            );
+            console.log("✅ MongoDB connected successfully!");
+            console.log("MongoDB database:", mongoose.connection.name);
+
+            app.listen(PORT, () => {
+                console.log(`🚀 Server running on http://localhost:${PORT}`);
+            });
+
+        })
+        .catch((error) => {
+
+            console.error("❌ MongoDB connection failed:");
+            console.error(error.message);
+
         });
 
-    })
-    .catch((error) => {
+}
 
-        console.error("❌ MongoDB connection failed:");
-        console.error(error.message);
-
-    });
+if (require.main === module) {
+    startServer();
+}
 
 
 // Root route
@@ -79,3 +85,5 @@ app.get("/", (req, res) => {
     });
 
 });
+
+module.exports = app;

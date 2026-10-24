@@ -1,10 +1,20 @@
 const API_URL = "http://localhost:5000/api/ideas";
 
 let allIdeas = [];
+let currentUser = null;
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
 
     console.log("Ideas page loaded");
+
+    if (typeof requireAuth === "function") {
+        currentUser = await requireAuth();
+        if (!currentUser) return;
+        currentUser._id = currentUser._id || currentUser.id;
+    } else if (typeof fetchCurrentUser === "function") {
+        currentUser = await fetchCurrentUser();
+        if (currentUser) currentUser._id = currentUser._id || currentUser.id;
+    }
 
     setupNavigation();
 
@@ -105,15 +115,100 @@ function displayIdeas(ideas) {
 
     }
 
+    const currentUserId = currentUser ? (currentUser._id || currentUser.id) : null;
 
     ideas.forEach((idea) => {
+
+        const hasAuthor = idea.createdBy && typeof idea.createdBy === "object" && idea.createdBy.name;
+        // authorStatus comes from the API and explains a missing author honestly
+        const missingAuthorLabel = idea.authorStatus === "account_missing"
+            ? "Author account no longer exists"
+            : "Author not recorded (legacy idea)";
+        const authorName = hasAuthor ? idea.createdBy.name : missingAuthorLabel;
+        const authorId = hasAuthor ? (idea.createdBy._id || idea.createdBy.id) : null;
+        const authorRole = hasAuthor ? (idea.createdBy.role || "Founder") : "";
+        const authorInitial = hasAuthor ? authorName.charAt(0).toUpperCase() : "?";
+        const authorImage = hasAuthor && idea.createdBy.profileImage ? idea.createdBy.profileImage : null;
+
+        const isOwner = currentUserId && authorId && currentUserId.toString() === authorId.toString();
 
         const card =
             document.createElement("div");
 
         card.className = "idea-card";
 
+        card.id = `idea-${idea._id}`;
+
+        const likedByMe = !!currentUserId &&
+            Array.isArray(idea.likedBy) &&
+            idea.likedBy.some(id => String(id) === String(currentUserId));
+
+        const likeCount = idea.likes || 0;
+
         card.innerHTML = `
+
+            <div class="idea-author-header">
+
+                <div class="idea-author-info">
+
+                    <div class="idea-author-avatar">
+                        ${
+                            authorImage
+                                ? `<img src="${escapeHTML(authorImage)}" alt="${escapeHTML(authorName)}">`
+                                : authorInitial
+                        }
+                    </div>
+
+                    <div class="idea-author-details">
+
+                        <span class="idea-author-name">
+                            ${escapeHTML(authorName)}
+                        </span>
+
+                        ${
+                            authorRole
+                                ? `<span class="idea-author-role">${escapeHTML(authorRole)}</span>`
+                                : ""
+                        }
+
+                    </div>
+
+                </div>
+
+                <div class="idea-author-actions">
+
+                    ${
+                        authorId
+                            ? `
+                                <a href="profile.html?id=${authorId}" class="idea-btn-profile">
+                                    View Profile
+                                </a>
+
+                                ${
+                                    isOwner
+                                        ? `
+                                            <span class="idea-self-badge">
+                                                Your Idea
+                                            </span>
+                                        `
+                                        : `
+                                            <a href="messages.html?user=${authorId}" class="idea-btn-message">
+                                                Message Author
+                                            </a>
+                                        `
+                                }
+                            `
+                            : `
+                                <span class="idea-no-author">
+                                    No profile available
+                                </span>
+                            `
+                    }
+
+                </div>
+
+            </div>
+
 
             <div class="idea-card-top">
 
@@ -146,9 +241,17 @@ function displayIdeas(ideas) {
                     ${escapeHTML(idea.stage || "Idea Stage")}
                 </span>
 
-                <span class="idea-likes">
-                    ❤️ ${idea.likes || 0} likes
-                </span>
+                <button
+                    type="button"
+                    class="idea-like-btn ${likedByMe ? "liked" : ""}"
+                    data-idea-id="${idea._id}"
+                    aria-pressed="${likedByMe ? "true" : "false"}"
+                    aria-label="${likedByMe ? "Unlike" : "Like"} this idea"
+                >
+                    <span class="idea-like-icon" aria-hidden="true">${likedByMe ? "♥" : "♡"}</span>
+                    <span class="idea-like-count">${likeCount}</span>
+                    <span>${likeCount === 1 ? "like" : "likes"}</span>
+                </button>
 
             </div>
 
@@ -157,6 +260,106 @@ function displayIdeas(ideas) {
         container.appendChild(card);
 
     });
+
+    setupLikeButtons(container);
+
+    highlightLinkedIdea();
+
+}
+
+
+/* ===============================
+   LIKES (one per member, saved in MongoDB)
+================================ */
+
+function setupLikeButtons(container) {
+
+    container.querySelectorAll(".idea-like-btn").forEach((button) => {
+
+        button.addEventListener("click", async () => {
+
+            const token = typeof getToken === "function" ? getToken() : localStorage.getItem("token");
+
+            if (!token || !currentUser) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            const ideaId = button.dataset.ideaId;
+            const isLiked = button.getAttribute("aria-pressed") === "true";
+
+            button.disabled = true;
+
+            try {
+
+                const response = await fetch(`${API_URL}/${ideaId}/like`, {
+                    method: isLiked ? "DELETE" : "POST",
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || "Could not update like");
+                }
+
+                // Keep local data in sync so search/filter re-renders stay correct
+                const myId = String(currentUser._id || currentUser.id);
+                const idea = allIdeas.find(i => String(i._id) === String(ideaId));
+
+                if (idea) {
+                    const others = (idea.likedBy || []).filter(id => String(id) !== myId);
+                    idea.likedBy = result.liked ? [...others, myId] : others;
+                    idea.likes = result.likes;
+                }
+
+                button.classList.toggle("liked", result.liked);
+                button.setAttribute("aria-pressed", result.liked ? "true" : "false");
+                button.setAttribute("aria-label", `${result.liked ? "Unlike" : "Like"} this idea`);
+                button.querySelector(".idea-like-icon").textContent = result.liked ? "♥" : "♡";
+                button.querySelector(".idea-like-count").textContent = result.likes;
+                button.lastElementChild.textContent = result.likes === 1 ? "like" : "likes";
+
+                updateStatistics(allIdeas);
+
+            } catch (error) {
+
+                console.error("Like error:", error);
+                alert(error.message);
+
+            } finally {
+
+                button.disabled = false;
+
+            }
+
+        });
+
+    });
+
+}
+
+
+// Opening ideas.html?idea=<id> (e.g. from a "liked your idea" notification)
+// scrolls to that idea and briefly highlights it.
+function highlightLinkedIdea() {
+
+    const ideaId = new URLSearchParams(window.location.search).get("idea");
+
+    if (!ideaId) {
+        return;
+    }
+
+    const card = document.getElementById(`idea-${ideaId}`);
+
+    if (!card) {
+        return;
+    }
+
+    card.classList.add("idea-highlight");
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    setTimeout(() => card.classList.remove("idea-highlight"), 2500);
 
 }
 
@@ -312,13 +515,16 @@ function setupIdeaForm() {
                 "Publishing idea...";
 
 
+            const token = typeof getToken === "function" ? getToken() : localStorage.getItem("token");
+
             const response =
                 await fetch(API_URL, {
 
                     method: "POST",
 
                     headers: {
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
                     },
 
                     body: JSON.stringify(ideaData)
@@ -340,6 +546,7 @@ function setupIdeaForm() {
             }
 
 
+            // Local UI feedback only — no self-notification is stored
             message.textContent =
                 "✅ Idea published successfully!";
 
