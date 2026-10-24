@@ -4,6 +4,7 @@ const Idea = require("../models/idea");
 const authMiddleware = require("../middleware/authMiddleware");
 const User = require("../models/user");
 const { notifyLike } = require("../utils/notify");
+const jwt = require("jsonwebtoken");
 
 const router = express.Router();
 
@@ -49,6 +50,38 @@ async function withAuthors(ideaDocs) {
     });
 }
 
+// ==========================================
+// PRIVACY
+// Private ideas are visible only to their author. Everyone else (including
+// logged-out visitors) sees public ideas only. Ideas saved without a
+// visibility value are treated as public.
+// ==========================================
+
+// Optional login: returns the user ID from a valid Bearer token, or null.
+// An invalid/expired token simply means "guest" here — it never exposes private ideas.
+function optionalUserId(req) {
+    const header = req.headers.authorization || "";
+    if (!header.startsWith("Bearer ") || !process.env.JWT_SECRET) return null;
+    try {
+        const decoded = jwt.verify(header.split(" ")[1], process.env.JWT_SECRET);
+        return decoded && decoded.id && mongoose.Types.ObjectId.isValid(decoded.id) ? String(decoded.id) : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+function visibleIdeasFilter(viewerId) {
+    const publicOnly = { visibility: { $ne: "private" } };
+    return viewerId
+        ? { $or: [publicOnly, { createdBy: new mongoose.Types.ObjectId(viewerId) }] }
+        : publicOnly;
+}
+
+function canView(idea, viewerId) {
+    if (!idea || idea.visibility !== "private") return true;
+    return !!viewerId && !!idea.createdBy && idea.createdBy.toString() === String(viewerId);
+}
+
 async function withAuthor(ideaDoc) {
     return (await withAuthors([ideaDoc]))[0];
 }
@@ -62,7 +95,7 @@ router.get("/", async (req, res) => {
 
     try {
 
-        const ideas = await Idea.find()
+        const ideas = await Idea.find(visibleIdeasFilter(optionalUserId(req)))
             .sort({ createdAt: -1 })
             .lean();
 
@@ -102,7 +135,11 @@ router.get("/:id", async (req, res) => {
         }
 
 
-        const idea = await Idea.findById(req.params.id).lean();
+        const found = await Idea.findById(req.params.id).lean();
+
+        // A private idea is reported as "not found" to anyone but its author,
+        // so its existence is not revealed either.
+        const idea = canView(found, optionalUserId(req)) ? found : null;
 
 
         if (!idea) {
@@ -226,6 +263,12 @@ async function setLike(req, res, like) {
         }
 
         const userId = req.user._id;
+
+        // Private ideas cannot be liked (or even found) by other members
+        const target = await Idea.findById(req.params.id).select("visibility createdBy").lean();
+        if (!target || !canView(target, userId)) {
+            return res.status(404).json({ message: "Idea not found" });
+        }
 
         // Atomic: a member can be in likedBy at most once
         const result = like

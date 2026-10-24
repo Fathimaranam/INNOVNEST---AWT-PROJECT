@@ -41,7 +41,7 @@ async function loadHomepageData() {
 
         const [ideasResponse, usersResponse] =
             await Promise.all([
-                fetch(IDEAS_API),
+                fetch(IDEAS_API, { headers: (typeof getToken === "function" && getToken()) ? { "Authorization": `Bearer ${getToken()}` } : {} }),
                 fetch(USERS_API)
             ]);
 

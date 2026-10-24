@@ -270,6 +270,42 @@ async function run() {
         record("Ideas without an author can be liked; seeded like numbers with no real likers show 0",
             orphanLike.status === 200 && orphanLike.data.likes === 1 && seeded?.likes === 0);
 
+
+        // ---------- Private ideas ----------
+        const priv = await api("POST", "/api/ideas", {
+            token: A.token,
+            body: { title: `Private ${stamp}`, description: "secret", category: "AI", stage: "Idea Stage", visibility: "private" }
+        });
+        if (priv.data?._id) created.ideaIds.push(priv.data._id);
+        const pid = String(priv.data?._id);
+        const has = r => (r.data || []).some(i => String(i._id) === pid);
+
+        const ownerList = await api("GET", "/api/ideas", { token: A.token });
+        const otherList = await api("GET", "/api/ideas", { token: B.token });
+        const guestList = await api("GET", "/api/ideas");
+        const badTokenList = await api("GET", "/api/ideas", { token: "not.a.real.token" });
+        record("Private idea is listed for its author only (not other members, guests or bad tokens)",
+            priv.status === 201 && has(ownerList) && !has(otherList) && !has(guestList) && !has(badTokenList));
+
+        const ownerOne = await api("GET", `/api/ideas/${pid}`, { token: A.token });
+        const otherOne = await api("GET", `/api/ideas/${pid}`, { token: B.token });
+        const guestOne = await api("GET", `/api/ideas/${pid}`);
+        record("Opening a private idea directly returns 404 for anyone but the author",
+            ownerOne.status === 200 && otherOne.status === 404 && guestOne.status === 404);
+
+        const otherLike = await api("POST", `/api/ideas/${pid}/like`, { token: B.token });
+        const privEdit = await api("PUT", `/api/ideas/${pid}`, { token: B.token, body: { title: "x" } });
+        record("Other members cannot like or edit a private idea",
+            otherLike.status === 404 && privEdit.status === 403);
+
+        const makePublic = await api("PUT", `/api/ideas/${pid}`, { token: A.token, body: { visibility: "public" } });
+        const afterPublic = await api("GET", "/api/ideas", { token: B.token });
+        record("When the author makes it public, other members can see it",
+            makePublic.status === 200 && has(afterPublic));
+
+        const publicStill = (await api("GET", "/api/ideas")).data.some(i => String(i._id) === String(ideaId));
+        record("Public ideas remain visible to everyone, including logged-out visitors", publicStill);
+
     } finally {
         // Remove ONLY data created by this test run
         const userIds = [...created.userIds, ...created.rawUserIds.map(String)];

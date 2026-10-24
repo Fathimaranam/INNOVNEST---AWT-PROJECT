@@ -48,7 +48,8 @@ async function loadIdeas() {
             </div>
         `;
 
-        const response = await fetch(API_URL);
+        // Send the login token so the server includes your own private ideas
+        const response = await fetch(API_URL, { headers: (typeof getToken === "function" && getToken()) ? { "Authorization": `Bearer ${getToken()}` } : {} });
 
         if (!response.ok) {
             throw new Error("Unable to load ideas");
@@ -224,8 +225,8 @@ function displayIdeas(ideas) {
 
                 </div>
 
-                <span class="idea-visibility">
-                    ${idea.visibility || "public"}
+                <span class="idea-visibility" ${idea.visibility === "private" ? 'title="Only you can see this idea"' : ""}>
+                    ${idea.visibility === "private" ? "🔒 private · only you" : (idea.visibility || "public")}
                 </span>
 
             </div>
