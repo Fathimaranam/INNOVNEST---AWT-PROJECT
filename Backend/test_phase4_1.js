@@ -11,6 +11,12 @@ dotenv.config({
 const User = require("./models/user");
 const Idea = require("./models/idea");
 const Message = require("./models/message");
+const Notification = require("./models/notification");
+
+// Notifications created by this run (follows/messages between the test accounts)
+// are removed at the end, so real users are not left with test notifications.
+const testStartedAt = new Date();
+const testUserIds = [];
 const app = require("./server");
 
 async function runTests() {
@@ -49,6 +55,7 @@ async function runTests() {
 
         const userA = existingUsers[0];
         const userB = existingUsers[1];
+        testUserIds.push(userA._id, userB._id);
         const userC = existingUsers[2] || existingUsers[0];
         const userD = existingUsers[3] || existingUsers[1];
 
@@ -388,6 +395,14 @@ async function runTests() {
         }
 
     } finally {
+        if (testUserIds.length) {
+            const removed = await Notification.deleteMany({
+                createdAt: { $gte: testStartedAt },
+                actor: { $in: testUserIds },
+                recipient: { $in: testUserIds }
+            });
+            console.log(`Cleaned up ${removed.deletedCount} test notification(s).`);
+        }
         server.close();
         console.log("==================================================");
         const total = results.length;

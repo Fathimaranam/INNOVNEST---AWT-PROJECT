@@ -11,6 +11,12 @@ dotenv.config({
 const User = require("./models/user");
 const Idea = require("./models/idea");
 const Message = require("./models/message");
+const Notification = require("./models/notification");
+
+// Notifications created by this run (follows/messages between the test accounts)
+// are removed at the end, so real users are not left with test notifications.
+const testStartedAt = new Date();
+const testUserIds = [];
 const app = require("./server");
 
 async function runTests() {
@@ -46,6 +52,7 @@ async function runTests() {
 
         const accountA = users[0];
         const accountB = users[1];
+        testUserIds.push(accountA._id, accountB._id);
 
         const tokenA = jwt.sign({ id: accountA._id, email: accountA.email }, process.env.JWT_SECRET, { expiresIn: "1h" });
         const tokenB = jwt.sign({ id: accountB._id, email: accountB.email }, process.env.JWT_SECRET, { expiresIn: "1h" });
@@ -275,6 +282,14 @@ async function runTests() {
         }
 
     } finally {
+        if (testUserIds.length) {
+            const removed = await Notification.deleteMany({
+                createdAt: { $gte: testStartedAt },
+                actor: { $in: testUserIds },
+                recipient: { $in: testUserIds }
+            });
+            console.log(`Cleaned up ${removed.deletedCount} test notification(s).`);
+        }
         server.close();
         console.log("==================================================");
         const total = results.length;
